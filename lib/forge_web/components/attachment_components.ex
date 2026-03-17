@@ -1,4 +1,5 @@
 defmodule ForgeWeb.AttachmentComponents do
+  use PetalComponents
   use Phoenix.Component
   use ForgeWeb, :verified_routes
 

@@ -64,15 +64,15 @@ defmodule ForgeWeb.CoreComponents do
         @kind == :info && "alert-info",
         @kind == :error && "alert-error"
       ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
+        <PetalComponents.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
+        <PetalComponents.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
         <div>
           <p :if={@title} class="font-semibold">{@title}</p>
           <p>{msg}</p>
         </div>
         <div class="flex-1" />
         <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
+          <PetalComponents.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
         </button>
       </div>
     </div>
@@ -88,33 +88,33 @@ defmodule ForgeWeb.CoreComponents do
       <.button phx-click="go" variant="primary">Send!</.button>
       <.button navigate={~p"/"}>Home</.button>
   """
-  attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
-  attr :class, :any
-  attr :variant, :string, values: ~w(primary)
-  slot :inner_block, required: true
+  #attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
+  #attr :class, :any
+  #attr :variant, :string, values: ~w(primary)
+  #slot :inner_block, required: true
 
-  def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+  #def button(%{rest: rest} = assigns) do
+    #variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
 
-    assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+    #assigns =
+      #assign_new(assigns, :class, fn ->
+        #["btn", Map.fetch!(variants, assigns[:variant])]
+      #end)
 
-    if rest[:href] || rest[:navigate] || rest[:patch] do
-      ~H"""
-      <.link class={@class} {@rest}>
-        {render_slot(@inner_block)}
-      </.link>
-      """
-    else
-      ~H"""
-      <button class={@class} {@rest}>
-        {render_slot(@inner_block)}
-      </button>
-      """
-    end
-  end
+    #if rest[:href] || rest[:navigate] || rest[:patch] do
+      #~H"""
+      #<.link class={@class} {@rest}>
+        #{render_slot(@inner_block)}
+      #</.link>
+      #"""
+    #else
+      #~H"""
+      #<button class={@class} {@rest}>
+        #{render_slot(@inner_block)}
+      #</button>
+      #"""
+    #end
+  #end
 
   @doc """
   Renders an input with label and error messages.
@@ -299,7 +299,7 @@ defmodule ForgeWeb.CoreComponents do
   defp error(assigns) do
     ~H"""
     <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
-      <.icon name="hero-exclamation-circle" class="size-5" />
+      <PetalComponents.icon name="hero-exclamation-circle" class="size-5" />
       {render_slot(@inner_block)}
     </p>
     """
@@ -436,14 +436,14 @@ defmodule ForgeWeb.CoreComponents do
       <.icon name="hero-x-mark" />
       <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
   """
-  attr :name, :string, required: true
-  attr :class, :any, default: "size-4"
+  #attr :name, :string, required: true
+  #attr :class, :any, default: "size-4"
 
-  def icon(%{name: "hero-" <> _} = assigns) do
-    ~H"""
-    <span class={[@name, @class]} />
-    """
-  end
+  #def icon(%{name: "hero-" <> _} = assigns) do
+    #~H"""
+    #<span class={[@name, @class]} />
+    #"""
+  #end
 
   ## JS Commands
 

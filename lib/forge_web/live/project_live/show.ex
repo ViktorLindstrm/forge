@@ -1,6 +1,7 @@
 defmodule ForgeWeb.ProjectLive.Show do
   use ForgeWeb, :live_view
 
+  use PetalComponents
   import ForgeWeb.CoreComponents
   import ForgeWeb.ProjectComponents
   import ForgeWeb.TaskComponents
@@ -478,10 +479,10 @@ defmodule ForgeWeb.ProjectLive.Show do
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto px-4 py-8">
-      <PC.breadcrumbs class="mb-4">
-        <PC.crumb navigate={~p"/"}>Projekt</PC.crumb>
-        <PC.crumb><%= @project.name %></PC.crumb>
-      </PC.breadcrumbs>
+      <.breadcrumbs class="mb-4">
+        <.crumb navigate={~p"/"}>Projekt</.crumb>
+        <.crumb><%= @project.name %></.crumb>
+      </.breadcrumbs>
 
       <.project_summary_card
         project={@project}

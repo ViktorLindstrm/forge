@@ -61,7 +61,7 @@ defmodule ForgeWeb.JournalComponents do
             entry_tasks={@entry_tasks} />
         </.card_body>
 
-        <.card_footer>
+        <.ccard_footer>
           <.button phx-click={JS.toggle(to: "#edit-panel-#{@entry.id}")}
             variant="ghost" color="gray" size="xs">
             Redigera
@@ -71,7 +71,7 @@ defmodule ForgeWeb.JournalComponents do
             variant="ghost" color="danger" size="xs">
             Ta bort
           </.button>
-        </.card_footer>
+        </.ccard_footer>
 
         <.expandable_panel id={"edit-panel-#{@entry.id}"}>
           <div class="p-4 space-y-4">
@@ -106,9 +106,9 @@ defmodule ForgeWeb.JournalComponents do
           <option value="in_progress">Pågår</option>
           <option value="blocked">Blockerad</option>
         </select>
-        <PC.button type="submit" variant="outline" color="gray" size="xs">
+        <.button type="submit" variant="outline" color="gray" size="xs">
           + Task
-        </PC.button>
+        </.button>
       </form>
     </div>
     """

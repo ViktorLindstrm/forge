@@ -15,7 +15,7 @@ defmodule ForgeWeb.UIComponents do
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
-  def card(assigns) do
+  def customcard(assigns) do
     ~H"""
     <div id={@id} class={["border border-zinc-200 rounded-xl overflow-hidden bg-white", @class]}>
       <%= render_slot(@inner_block) %>
@@ -52,7 +52,7 @@ defmodule ForgeWeb.UIComponents do
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
-  def card_footer(assigns) do
+  def ccard_footer(assigns) do
     ~H"""
     <div class={["flex items-center justify-between px-4 py-2 bg-zinc-50 border-t border-zinc-100", @class]}>
       <%= render_slot(@inner_block) %>
@@ -238,6 +238,26 @@ defmodule ForgeWeb.UIComponents do
     </div>
     """
   end
+
+  attr :navigate, :string, default: nil
+  attr :patch, :string, default: nil
+  slot :inner_block, required: true
+
+  def crumb(assigns) do
+    ~H"""
+    <div class="flex items-center gap-2">
+      <%= if @navigate || @patch do %>
+        <.link navigate={@navigate} patch={@patch} class="text-zinc-600 hover:text-zinc-900 transition-colors">
+        <%= render_slot(@inner_block) %>
+        </.link>
+        <% else %>
+        <span class="text-zinc-900"><%= render_slot(@inner_block) %></span>
+        <% end %>
+      <span class="text-zinc-300">/</span>
+    </div>
+    """
+  end
+
 
   # ---------------------------------------------------------------------------
   # Privata helpers

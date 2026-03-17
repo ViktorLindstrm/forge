@@ -21,9 +21,9 @@ defmodule ForgeWeb.ProjectComponents do
   def project_summary_card(assigns) do
     ~H"""
     <div class="rounded-xl overflow-hidden mb-8 border border-zinc-200">
-      <div class={["relative flex items-end px-5 pb-4 pt-10 min-h-[120px]", hero_bg(@project.category)]}>
+      <div class={["relative flex items-end px-5 pb-4 pt-10 min-h-[120px]", hhero_bg(@project.category)]}>
         <div class="absolute inset-0 overflow-hidden">
-          <img :if={cover_url(@project)} src={cover_url(@project)}
+          <img :if={ccover_url(@project)} src={ccover_url(@project)}
             class="w-full h-full object-cover opacity-40" />
         </div>
         <div class="absolute top-4 right-4 text-4xl select-none z-10">
@@ -61,9 +61,9 @@ defmodule ForgeWeb.ProjectComponents do
 
           <div id={"bom-detail-#{@project.id}"} class="hidden">
             <div class="grid grid-cols-3 gap-2 mb-3">
-              <.stat_cell value={length(@project.bom_items)} label="BOM-rader" />
-              <.stat_cell value={"#{bom_received(@project.bom_items)}/#{length(@project.bom_items)}"} label="Inköpta" />
-              <.stat_cell value={"#{bom_total(@project.bom_items)} kr"} label="Totalt" />
+              <.cstat_cell value={length(@project.bom_items)} label="BOM-rader" />
+              <.cstat_cell value={"#{bom_received(@project.bom_items)}/#{length(@project.bom_items)}"} label="Inköpta" />
+              <.cstat_cell value={"#{bom_total(@project.bom_items)} kr"} label="Totalt" />
             </div>
             <div class="border border-zinc-100 rounded-lg overflow-hidden divide-y divide-zinc-50">
               <div :for={item <- @project.bom_items}
@@ -118,7 +118,7 @@ defmodule ForgeWeb.ProjectComponents do
   # Private helpers
   # ---------------------------------------------------------------------------
 
-  defp stat_cell(assigns) do
+  defp cstat_cell(assigns) do
     ~H"""
     <div class="bg-zinc-50 border border-zinc-100 rounded-lg p-2.5 text-center">
       <div class="text-base font-medium text-zinc-800"><%= @value %></div>
@@ -127,21 +127,21 @@ defmodule ForgeWeb.ProjectComponents do
     """
   end
 
-  defp cover_url(%{cover_image_id: nil}), do: nil
-  defp cover_url(%{attachments: atts, cover_image_id: id}) when is_list(atts) do
+  defp ccover_url(%{cover_image_id: nil}), do: nil
+  defp ccover_url(%{attachments: atts, cover_image_id: id}) when is_list(atts) do
     case Enum.find(atts, &(to_string(&1.id) == to_string(id))) do
       nil -> nil
       att -> Forge.Storage.url(att.storage_path)
     end
   end
-  defp cover_url(_), do: nil
+  defp ccover_url(_), do: nil
 
-  defp hero_bg(nil),                    do: "bg-zinc-700"
-  defp hero_bg(%{slug: "3d_printing"}), do: "bg-gradient-to-br from-orange-900 to-orange-700"
-  defp hero_bg(%{slug: "programming"}), do: "bg-gradient-to-br from-indigo-900 to-indigo-700"
-  defp hero_bg(%{slug: "electronics"}), do: "bg-gradient-to-br from-emerald-900 to-emerald-700"
-  defp hero_bg(%{slug: "home"}),        do: "bg-gradient-to-br from-amber-900 to-amber-700"
-  defp hero_bg(_),                      do: "bg-zinc-700"
+  defp hhero_bg(nil),                    do: "bg-zinc-700"
+  defp hhero_bg(%{slug: "3d_printing"}), do: "bg-gradient-to-br from-orange-900 to-orange-700"
+  defp hhero_bg(%{slug: "programming"}), do: "bg-gradient-to-br from-indigo-900 to-indigo-700"
+  defp hhero_bg(%{slug: "electronics"}), do: "bg-gradient-to-br from-emerald-900 to-emerald-700"
+  defp hhero_bg(%{slug: "home"}),        do: "bg-gradient-to-br from-amber-900 to-amber-700"
+  defp hhero_bg(_),                      do: "bg-zinc-700"
 
   defp bom_status_btn_cls(:needed),     do: "text-zinc-500 border-zinc-200"
   defp bom_status_btn_cls(:ordered),    do: "text-blue-700 border-blue-200"
