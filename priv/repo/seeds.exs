@@ -1,121 +1,122 @@
-alias Forge.{Category, Project, BomItem, JournalEntry, Task}
+import Ecto.Query
 
-# ── Kategorier (idempotent) ───────────────────────────────────────────────────
+alias Forge.Repo
+alias Forge.Projects
+alias Forge.Projects.{Project, Task, BomItem, JournalEntry}
 
-[
-  %{name: "3D-printing",   slug: "3d_printing", icon: "🖨️", color: "#993C1D"},
-  %{name: "Programmering", slug: "programming", icon: "💻", color: "#534AB7"},
-  %{name: "Elektronik",    slug: "electronics", icon: "⚡", color: "#0F6E56"},
-  %{name: "Hemma",         slug: "home",        icon: "🏠", color: "#854F0B"},
-]
-|> Enum.each(fn attrs ->
-  Category
-  |> Ash.Changeset.for_create(:create, attrs)
-  |> Ash.create!(upsert?: true, upsert_identity: :unique_slug)
-end)
+existing_project_names =
+  Repo.all(from(p in Project, select: p.name))
+  |> MapSet.new()
 
-IO.puts("✓ Kategorier seedade")
+ensure_project = fn attrs ->
+  name = Map.fetch!(attrs, :name)
 
-# ── Projekt (bara om databasen är tom) ───────────────────────────────────────
-
-elec = Ash.get!(Forge.Category, [slug: "electronics"], domain: Forge.Domain)
-
-project =
-  case Ash.read(Forge.Project, domain: Forge.Domain) do
-    {:ok, [existing | _]} ->
-      IO.puts("✓ Projekt finns redan, skippar")
-      existing
-
-    {:ok, []} ->
-      {:ok, p} =
-        Project.create(%{
-          name: "FRIDANS-motorisering",
-          description: """
-          Motoriserad IKEA FRIDANS rullgardin med N20 wormgear-motor, DRV8833 H-bridge och \
-          XIAO ESP32-C6. Styrs via ESPHome och Home Assistant. Wormgear valdes för att \
-          undvika backdrive — gardinen håller position utan ström. Motor-adapter till \
-          blindtuben printas i PETG.
-          """,
-          status: :active,
-          category_id: elec.id
-        })
-      p
+  if MapSet.member?(existing_project_names, name) do
+    Repo.one!(from(p in Project, where: p.name == ^name))
+  else
+    {:ok, project} = Projects.create_project(attrs)
+    project
   end
-
-# ── BOM ───────────────────────────────────────────────────────────────────────
-
-if Ash.read!(Forge.BomItem, domain: Forge.Domain) == [] do
-  [
-    %{name: "XIAO ESP32-C6",      quantity: 1, supplier: "Seeed Studio", unit_price: Decimal.new("89"),  currency: "SEK", status: :received, sort_order: 1},
-    %{name: "DRV8833 H-bridge",   quantity: 1, supplier: "AliExpress",   unit_price: Decimal.new("35"),  currency: "SEK", status: :received, sort_order: 2},
-    %{name: "N20 Wormgear 6V",    quantity: 1, supplier: "AliExpress",   unit_price: Decimal.new("78"),  currency: "SEK", status: :received, sort_order: 3},
-    %{name: "LiPo 3,7V 400mAh",   quantity: 1, supplier: "AliExpress",   unit_price: Decimal.new("45"),  currency: "SEK", status: :ordered,  sort_order: 4},
-    %{name: "Motor-adapter PETG", quantity: 1, supplier: "Egenprint",    unit_price: Decimal.new("0"),   currency: "SEK", status: :needed,   sort_order: 5},
-  ]
-  |> Enum.each(fn attrs ->
-    BomItem.create!(Map.put(attrs, :project_id, project.id))
-  end)
-  IO.puts("✓ BOM seedat")
 end
 
-# ── Journal-poster ────────────────────────────────────────────────────────────
+fridans =
+  ensure_project.(%{
+    name: "FRIDANS motorisering",
+    status: "active",
+    color: "emerald",
+    description:
+      "Motoriserad rullgardin med fokus på robust mekanik, enkel service och tydliga nästa steg.",
+    tech_stack: "ESPHome · Home Assistant · 3D print",
+    notes:
+      "Mål: lätt att komma tillbaka efter en paus. Skriv alltid nästa konkreta steg som en task."
+  })
 
-if Ash.read!(Forge.JournalEntry, domain: Forge.Domain) == [] do
-  [
-    %{
-      title: "Projekt skapat",
-      body: "Initial idé dokumenterad. Tre FRIDANS-gardiner i vardagsrum — manuell hantering på morgonen är oacceptabelt.",
-    },
-    %{
-      title: "Komponent-research klar",
-      body: """
-      Valde N20 wormgear framför vanlig N20 — ingen backdrive gör att gardinen håller \
-      position utan ström. DRV8833 föredraget framför L298N pga storlek och lägre \
-      spänningsfall. Kan driva 2 motorer vilket lämnar expansion öppen.
+starter =
+  ensure_project.(%{
+    name: "3D-print jig (idé)",
+    status: "idea",
+    color: "violet",
+    description: "En liten idé som hålls varm utan att stjäla fokus.",
+    notes: "När det finns en 30-min lucka: skissa mått och toleranser."
+  })
 
-      Beställt från AliExpress, 2–3 veckors leveranstid.
-      """,
-    },
-    %{
-      title: "Motor-adapter printad, första rörelstest",
-      body: """
-      Printade fästet i PETG — passning mot tuben lite tight, ska skala ned X/Y 0.3% \
-      i nästa print. DRV8833 kopplad och testad med enkel PWM. Rörelsen är smidig men \
-      rampning i ESPHome behöver tunas.
+existing_task_titles =
+  Repo.all(from(t in Task, where: t.project_id == ^fridans.id, select: t.title))
+  |> MapSet.new()
 
-      Noterade att `slow_pwm`-plattformen introducerar jitter vid låga hastigheter — \
-      kör vidare med `ledc` på nästa test.
+ensure_task = fn project, attrs ->
+  title = Map.fetch!(attrs, :title)
 
-      :::bom
-      - [x] XIAO ESP32-C6 ×1 | Seeed Studio | 89 SEK
-      - [x] DRV8833 H-bridge ×1 | AliExpress | 35 SEK
-      - [x] N20 Wormgear 6V ×1 | AliExpress | 78 SEK
-      - [ ] LiPo 3,7V 400mAh ×1 | AliExpress | 45 SEK
-      - [ ] Motor-adapter PETG ×1 | Egenprint | 0 SEK
-      :::
-      """,
-    },
-  ]
-  |> Enum.each(fn attrs ->
-    JournalEntry.create!(Map.put(attrs, :project_id, project.id))
-  end)
-  IO.puts("✓ Journal seedat")
+  if MapSet.member?(existing_task_titles, title) do
+    :ok
+  else
+    _ = Projects.create_task(Map.merge(attrs, %{project_id: project.id}))
+  end
 end
 
-# ── Tasks ─────────────────────────────────────────────────────────────────────
+ensure_task.(fridans, %{title: "Designa motor-adapter", status: "in_progress", priority: "high"})
 
-if Ash.read!(Forge.Task, domain: Forge.Domain) == [] do
-  today = Date.utc_today()
+ensure_task.(fridans, %{title: "Verifiera moment & backdrive", status: "todo", priority: "medium"})
 
-  [
-    %{title: "Designa motor-adapter för blindtub", status: :in_progress, priority: :high,   due_date: today,             sort_order: 1},
-    %{title: "Beställa LiPo 3,7V 400mAh",         status: :todo,        priority: :medium,  due_date: Date.add(today, -2), sort_order: 2},
-    %{title: "Tuna ESPHome-rampning med ledc",     status: :blocked,     priority: :medium,  due_date: nil,               sort_order: 3},
-    %{title: "Koppla DRV8833 och testa PWM",       status: :done,        priority: :low,     due_date: nil,               sort_order: 4},
-    %{title: "Verifiera wormgear backdrive-frihet", status: :done,       priority: :low,     due_date: nil,               sort_order: 5},
-  ]
-  |> Enum.each(fn attrs ->
-    Task.create!(Map.put(attrs, :project_id, project.id))
-  end)
-  IO.puts("✓ Tasks seedade")
+ensure_task.(fridans, %{title: "Beställa kablage", status: "blocked", priority: "medium"})
+ensure_task.(fridans, %{title: "Sätta upp test-rigg", status: "done", priority: "low"})
+
+existing_bom_names =
+  Repo.all(from(b in BomItem, where: b.project_id == ^fridans.id, select: b.name))
+  |> MapSet.new()
+
+ensure_bom = fn project, attrs ->
+  name = Map.fetch!(attrs, :name)
+
+  if MapSet.member?(existing_bom_names, name) do
+    :ok
+  else
+    _ = Projects.create_bom_item(Map.merge(attrs, %{project_id: project.id}))
+  end
 end
+
+ensure_bom.(fridans, %{
+  name: "N20 wormgear motor",
+  quantity: 1,
+  status: "received",
+  unit_price: Decimal.new("79")
+})
+
+ensure_bom.(fridans, %{
+  name: "DRV8833",
+  quantity: 2,
+  status: "ordered",
+  unit_price: Decimal.new("25")
+})
+
+ensure_bom.(fridans, %{
+  name: "PETG (filament)",
+  quantity: 1,
+  status: "needed",
+  unit_price: Decimal.new("299")
+})
+
+existing_journal_titles =
+  Repo.all(from(j in JournalEntry, where: j.project_id == ^fridans.id, select: j.title))
+  |> MapSet.new()
+
+ensure_journal = fn project, attrs ->
+  title = Map.get(attrs, :title)
+
+  key = title || "__untitled__"
+
+  if MapSet.member?(existing_journal_titles, key) do
+    :ok
+  else
+    _ = Projects.create_journal_entry(Map.merge(attrs, %{project_id: project.id}))
+  end
+end
+
+ensure_journal.(fridans, %{title: "Första noteringen", body: "Byt fokus: ett nästa steg i taget."})
+
+ensure_journal.(fridans, %{
+  title: "Status",
+  body: "Adapter-design börjar ta form. Behöver verifiera toleranser."
+})
+
+_ = starter

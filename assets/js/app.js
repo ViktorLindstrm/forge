@@ -1,8 +1,7 @@
 // If you want to use Phoenix channels, run `mix help phx.gen.channel`
 // to get started and then uncomment the line below.
 // import "./user_socket.js"
-import Sortable from "../vendor/sortable"
-window.Sortable = Sortable                 
+
 // You can include dependencies in two ways.
 //
 // The simplest option is to put them in assets/vendor and
@@ -26,14 +25,11 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/forge"
 import topbar from "../vendor/topbar"
 
-import { Hooks } from "./hooks"
-
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
-  hooks: Hooks,
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ...Hooks},
+  hooks: {...colocatedHooks},
 })
 
 // Show progress bar on live navigation and form submits

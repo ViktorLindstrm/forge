@@ -7,7 +7,7 @@ defmodule ForgeWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_forge_key",
-    signing_salt: "uMnFc2QT",
+    signing_salt: "UxPjHKqN",
     same_site: "Lax"
   ]
 
@@ -29,6 +29,10 @@ defmodule ForgeWeb.Endpoint do
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
+  if Mix.env() == :dev do
+    plug Tidewave
+  end
+
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader

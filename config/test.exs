@@ -18,8 +18,14 @@ config :forge, Forge.Repo,
 # you can enable the server option below.
 config :forge, ForgeWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "RoANDUrhicMp97M7IBP4yi0JphWW+D07A/YLKfESeYong239Pcl+zFYWGxdy4ygo",
+  secret_key_base: "OjenW/4gbYaVA8PzwI93PwqHWUw7ZGAqWWxIf4Q8QKEc8bmZ4aNKC/LuuNd4sJ1P",
   server: false
+
+# In test we don't send emails
+config :forge, Forge.Mailer, adapter: Swoosh.Adapters.Test
+
+# Disable swoosh api client as it is only required for production adapters
+config :swoosh, :api_client, false
 
 # Print only warnings and errors during test
 config :logger, level: :warning

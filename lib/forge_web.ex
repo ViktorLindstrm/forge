@@ -17,7 +17,7 @@ defmodule ForgeWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt uploads)
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do
     quote do
@@ -77,19 +77,22 @@ defmodule ForgeWeb do
     end
   end
 
-
   defp html_helpers do
     quote do
+      # Translation
       use Gettext, backend: ForgeWeb.Gettext
-      import Phoenix.HTML
-      import ForgeWeb.CoreComponents
-      import ForgeWeb.UIComponents
 
-      # Petal Components — alla komponenter tillgängliga direkt som <.button>, <.badge> etc.
+      # HTML escaping functionality
+      import Phoenix.HTML
+      # Core UI components
+      import ForgeWeb.CoreComponents
       use PetalComponents
 
+      # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias ForgeWeb.Layouts
+
+      # Routes generation with the ~p sigil
       unquote(verified_routes())
     end
   end

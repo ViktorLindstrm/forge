@@ -24,7 +24,7 @@ config :forge, ForgeWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "2pnvwAXfej7CgMhzDJfoOFgoANS/bPbPs+r5uk0p3Wg6yLZZhEnYNfssjN8pv8pA",
+  secret_key_base: "5pCSSyQ+BXBh+kNH6/cXvl3mXBl9Tn3nKdIHMfw+uNlv0gx0Rx19kudU85JNJmrO",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:forge, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:forge, ~w(--watch)]}
@@ -88,3 +88,6 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
+
+# Disable swoosh api client as it is only required for production adapters.
+config :swoosh, :api_client, false
