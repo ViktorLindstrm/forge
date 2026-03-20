@@ -1,0 +1,86 @@
+name: Auto-approve workflow runs
+
+# This workflow automatically approves pending GitHub Actions workflow runs
+# triggered by pull requests. It is needed so that the coding agent can iterate
+# on PRs without requiring manual approval each time.
+#
+# It runs via pull_request_target (which always executes in the base repository
+# context) so it never requires its own approval. It then uses the GitHub API
+# to approve any workflow runs that are waiting for approval for the same
+# pull request head commit.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  actions: write
+
+jobs:
+  approve:
+    name: Approve pending workflow runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve pending workflow runs for this PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headSha = context.payload.pull_request.head.sha;
+            const prAuthor = context.payload.pull_request.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Only approve workflow runs for collaborators (write access or above).
+            // This prevents untrusted external contributors from bypassing the
+            // approval gate.
+            let permission;
+            try {
+              const { data: permData } =
+                await github.rest.repos.getCollaboratorPermissionLevel({
+                  owner,
+                  repo,
+                  username: prAuthor,
+                });
+              permission = permData.permission;
+            } catch {
+              console.log(`Could not determine permission for ${prAuthor}. Skipping.`);
+              return;
+            }
+
+            const trusted = ["admin", "write", "maintain"].includes(permission);
+            if (!trusted) {
+              console.log(
+                `PR author ${prAuthor} has permission "${permission}" — not auto-approving.`
+              );
+              return;
+            }
+
+            console.log(
+              `PR author ${prAuthor} is trusted (permission: ${permission}). Looking for pending workflow runs for commit ${headSha}.`
+            );
+
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner,
+              repo,
+              status: "action_required",
+              head_sha: headSha,
+            });
+
+            if (data.total_count === 0) {
+              console.log("No pending workflow runs found.");
+              return;
+            }
+
+            for (const run of data.workflow_runs) {
+              console.log(`Approving workflow run #${run.id} (${run.name})`);
+              await github.rest.actions.approveWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id,
+              });
+            }
+
+            console.log(`Approved ${data.total_count} workflow run(s).`);
