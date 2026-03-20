@@ -18,7 +18,8 @@ config :ash,
   read_action_after_action_hooks_in_order?: true,
   bulk_actions_default_to_errors?: true,
   transaction_rollback_on_error?: true,
-  known_types: [AshPostgres.Timestamptz, AshPostgres.TimestamptzUsec]
+  known_types: [AshPostgres.Timestamptz, AshPostgres.TimestamptzUsec],
+  use_all_identities_in_manage_relationship?: false
 
 config :spark,
   formatter: [

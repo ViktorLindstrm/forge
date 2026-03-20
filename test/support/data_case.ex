@@ -18,6 +18,8 @@ defmodule Forge.DataCase do
 
   using do
     quote do
+      use ExUnitProperties
+      import StreamData
       alias Forge.Repo
 
       import Ecto

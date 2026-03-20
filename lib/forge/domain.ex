@@ -1,5 +1,11 @@
 defmodule Forge.Domain do
-  use Ash.Domain, otp_app: :forge
+  use Ash.Domain,
+    otp_app: :forge,
+    extensions: [AshJsonApi.Domain]
+
+  json_api do
+    base_route "/api"
+  end
 
   resources do
     resource Forge.Category

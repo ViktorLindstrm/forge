@@ -42,6 +42,11 @@ defmodule ForgeWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
+
+  if Mix.env() == :dev do
+    plug Tidewave
+  end
+
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
