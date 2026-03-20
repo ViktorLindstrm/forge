@@ -96,6 +96,8 @@ import_config "#{config_env()}.exs"
 config :forge,
   ash_domains: [Forge.Domain]
 
+config :ash, :use_all_identities_in_manage_relationship?, false
+
 config :mime, :types, %{
   "model/stl"                  => ["stl"],
   "model/3mf"                  => ["3mf"],

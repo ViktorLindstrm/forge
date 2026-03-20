@@ -71,6 +71,10 @@ defmodule Forge.MixProject do
       {:ash_phoenix, "~> 2.0"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.5", only: [:dev]},
+      # Ash JSON API
+      {:ash_json_api, "~> 1.4"},
+      # Tidewave – dev only
+      {:tidewave, "~> 0.5", only: :dev},
       # Testing
       {:stream_data, "~> 1.1"}
     ]
