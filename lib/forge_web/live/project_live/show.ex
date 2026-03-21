@@ -4,6 +4,8 @@ defmodule ForgeWeb.ProjectLive.Show do
   alias Forge.Projects
   alias ForgeWeb.ProjectLive.Components
 
+  @notes_per_page 3
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -17,22 +19,24 @@ defmodule ForgeWeb.ProjectLive.Show do
           <.icon name="hero-arrow-left" class="size-4" /> Projects
         </.link>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1">
           <.link
             navigate={~p"/projects/#{@project}/edit?return_to=show"}
-            class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             id="project-edit"
+            title="Edit project"
           >
-            <.icon name="hero-pencil" class="size-3.5 text-gray-400" /> Edit
+            <.icon name="hero-pencil" class="size-4" />
           </.link>
 
           <button
-            class="inline-flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
+            class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
             phx-click="delete"
             data-confirm="Delete this project?"
             id="project-delete"
+            title="Delete project"
           >
-            Delete
+            <.icon name="hero-trash" class="size-4" />
           </button>
         </div>
       </div>
@@ -48,6 +52,56 @@ defmodule ForgeWeb.ProjectLive.Show do
               {@project.name}
             </h1>
             <Components.status_badge status={@project.status} />
+          </div>
+
+          <div :if={@pinned_current_task || @pinned_upcoming_task} class="mb-4" id="project-pins">
+            <div
+              :if={@pinned_current_task}
+              class="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 px-3 py-2"
+              id="project-current-task"
+            >
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                  Current
+                </p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {@pinned_current_task.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                phx-click="task_unpin"
+                phx-value-id={@pinned_current_task.id}
+                class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                id="project-current-unpin"
+              >
+                Unpin
+              </button>
+            </div>
+
+            <div
+              :if={@pinned_upcoming_task}
+              class="mt-2 flex items-center justify-between gap-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-900/40 px-3 py-2"
+              id="project-upcoming-task"
+            >
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                  Upcoming
+                </p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {@pinned_upcoming_task.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                phx-click="task_unpin"
+                phx-value-id={@pinned_upcoming_task.id}
+                class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-sky-700 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors"
+                id="project-upcoming-unpin"
+              >
+                Unpin
+              </button>
+            </div>
           </div>
 
           <p
@@ -81,60 +135,96 @@ defmodule ForgeWeb.ProjectLive.Show do
               Updated {Calendar.strftime(@project.updated_at, "%b %d, %Y")}
             </div>
           </div>
+
+          <%!-- Budget row --%>
+          <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
+            <.icon name="hero-banknotes" class="size-4 text-emerald-500 shrink-0" />
+            <%= if @budget_editing? do %>
+              <.form
+                for={@budget_form}
+                phx-submit="budget_update"
+                id="budget-form"
+                class="flex items-center gap-2 flex-1"
+              >
+                <.input field={@budget_form[:budget]} type="number" step="0.01" label="" />
+                <button
+                  type="submit"
+                  id="budget-save"
+                  class="text-xs font-semibold text-violet-600 hover:text-violet-500 shrink-0"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  phx-click="budget_cancel"
+                  class="text-xs font-medium text-gray-500 hover:text-gray-900 shrink-0"
+                >
+                  Cancel
+                </button>
+              </.form>
+            <% else %>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                {budget_display(@project.budget)}
+              </span>
+              <button
+                type="button"
+                phx-click="budget_edit"
+                id="budget-edit-trigger"
+                class="p-1 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
+                aria-label="Edit budget"
+              >
+                <.icon name="hero-pencil-square" class="size-3.5" />
+              </button>
+            <% end %>
+          </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-6">
-          <Components.stats_grid task_counts={@task_counts} />
+      <div class="space-y-6">
+        <Components.summary_grid
+          task_counts={@task_counts}
+          project={@project}
+          bom_budget={@bom_budget}
+          note_count={@note_count}
+          budget_editing?={@budget_editing?}
+          budget_form={@budget_form}
+        />
 
-          <Components.tasks_component
-            task_counts={@task_counts}
-            task_form={@task_form}
-            streams={@streams}
-            tasks_empty?={@tasks_empty?}
-            sections_open={@sections_open}
-            bom_budget={@bom_budget}
-            bom_form={@bom_form}
-            journal_entries={@journal_entries}
-            journal_form={@journal_form}
-            editing_journal_entry_id={@editing_journal_entry_id}
-            journal_edit_form={@journal_edit_form}
-          />
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 space-y-6">
+            <Components.tasks_component
+              task_counts={@task_counts}
+              task_form={@task_form}
+              task_form_open?={@task_form_open?}
+              expanded_task_id={@expanded_task_id}
+              editing_task_id={@editing_task_id}
+              task_edit_form={@task_edit_form}
+              streams={@streams}
+              tasks_empty?={@tasks_empty?}
+              sections_open={@sections_open}
+              subtask_form_task_id={@subtask_form_task_id}
+              collapsed_subtasks={@collapsed_subtasks}
+            />
 
-        <div class="space-y-6">
-          <Components.bom_component bom_budget={@bom_budget} bom_form={@bom_form} />
-          <Components.journal_component journal_entries={@journal_entries} journal_form={@journal_form} editing_journal_entry_id={@editing_journal_entry_id} journal_edit_form={@journal_edit_form} />
+            <Components.bom_component
+              sections_open={@sections_open}
+              bom_budget={@bom_budget}
+              bom_form={@bom_form}
+              bom_form_open?={@bom_form_open?}
+            />
+          </div>
 
-          <div
-            class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6"
-            id="project-notes"
-          >
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <.icon name="hero-document-text" class="size-4 text-gray-400" /> Notes
-              </h2>
-              <.link
-                navigate={~p"/projects/#{@project}/edit?return_to=show"}
-                class="text-xs text-violet-600 dark:text-violet-400 hover:underline"
-                id="project-notes-edit"
-              >
-                Edit
-              </.link>
-            </div>
-
-            <%= if @project.notes && @project.notes != "" do %>
-              <div class="prose prose-sm dark:prose-invert max-w-none">
-                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                  {@project.notes}
-                </p>
-              </div>
-            <% else %>
-              <p class="text-sm text-gray-400 dark:text-gray-600 italic">
-                No notes yet.
-              </p>
-            <% end %>
+          <div class="lg:col-span-5 space-y-6">
+            <Components.notes_component
+              sections_open={@sections_open}
+              project={@project}
+              note_form={@note_form}
+              note_form_open?={@note_form_open?}
+              streams={@streams}
+              notes_empty?={@notes_empty?}
+              note_page={@note_page}
+              note_total_pages={@note_total_pages}
+            />
           </div>
         </div>
       </div>
@@ -147,24 +237,43 @@ defmodule ForgeWeb.ProjectLive.Show do
     project = Projects.get_project!(id)
 
     task_counts = Projects.task_stats(project.id)
+    tasks = Projects.list_tasks_with_subtasks(project.id)
+    note_count = Projects.count_journal_entries(project.id)
+    entries = Projects.list_journal_entries_page(project.id, 1, @notes_per_page)
+    total_pages = max(1, ceil(note_count / @notes_per_page))
 
-    tasks = Projects.list_tasks(project.id)
+    pinned_current_task = Enum.find(tasks, &(&1.pin_status == :current))
+    pinned_upcoming_task = Enum.find(tasks, &(&1.pin_status == :upcoming))
 
     {:ok,
      socket
      |> assign(:project, project)
      |> assign(:page_title, "Project · Forge")
-     |> assign(:sections_open, %{tasks: true})
+     |> assign(:sections_open, %{tasks: true, bom: true, notes: true})
      |> assign(:task_counts, task_counts)
-     |> assign(:task_form, to_form(%{"title" => ""}, as: :task))
+     |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
      |> assign(:bom_budget, Projects.bom_budget(project.id))
      |> assign(:bom_form, to_form(Components.bom_params(), as: :bom))
-     |> assign(:journal_entries, Projects.list_journal_entries(project.id))
-     |> assign(:journal_form, to_form(Components.journal_params(), as: :journal))
-     |> assign(:editing_journal_entry_id, nil)
-     |> assign(:journal_edit_form, to_form(Components.journal_params(), as: :journal_edit))
      |> assign(:tasks_empty?, tasks == [])
-     |> stream(:tasks, tasks)}
+     |> assign(:pinned_current_task, pinned_current_task)
+     |> assign(:pinned_upcoming_task, pinned_upcoming_task)
+     |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
+     |> assign(:note_form_open?, false)
+     |> assign(:task_form_open?, false)
+     |> assign(:bom_form_open?, false)
+     |> assign(:expanded_task_id, nil)
+     |> assign(:editing_task_id, nil)
+     |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+     |> assign(:subtask_form_task_id, nil)
+     |> assign(:collapsed_subtasks, MapSet.new())
+     |> assign(:note_count, note_count)
+     |> assign(:note_page, 1)
+     |> assign(:note_total_pages, total_pages)
+     |> assign(:notes_empty?, entries == [])
+     |> assign(:budget_editing?, false)
+     |> assign(:budget_form, to_form(Forge.Projects.change_project(project), as: :project))
+     |> stream(:tasks, tasks)
+     |> stream(:journal_entries, entries)}
   end
 
   @impl true
@@ -172,70 +281,387 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:noreply, assign(socket, :project, project)}
   end
 
+  defp apply_result(socket, {:ok, result}) when is_map(result) do
+    socket =
+      case Map.get(result, :assigns) do
+        nil -> socket
+        assigns -> Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
+      end
+
+    case Map.get(result, :stream) do
+      {:reset, name, items} ->
+        {:noreply, stream(socket, name, items, reset: true)}
+
+      _ ->
+        case Map.get(result, :stream_delete) do
+          {name, item} -> {:noreply, stream_delete(socket, name, item)}
+          _ -> {:noreply, socket}
+        end
+    end
+  end
+
+  defp apply_result(socket, {:error, :could_not_update}),
+    do: {:noreply, put_flash(socket, :error, "Could not update item.")}
+
   def handle_event("task_create", params, socket) do
     case ForgeWeb.ProjectLive.Tasks.handle_task_create(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns, stream: {:reset, stream_name, items}}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, stream(socket, stream_name, items, reset: true)}
+      {:ok, result} ->
+        socket =
+          result.assigns
+          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
 
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
+        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+        {:noreply,
+         socket
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:tasks_empty?, tasks == [])
+         |> assign(:task_form_open?, false)
+         |> assign(:expanded_task_id, nil)
+         |> stream(:tasks, tasks, reset: true)}
+
+      {:error, :blank_title} ->
         {:noreply, socket}
 
       {:error, {:changeset, changeset}} ->
         {:noreply, assign(socket, :task_form, to_form(changeset, as: :task))}
-
-      {:error, :blank_title} ->
-        {:noreply, socket}
     end
   end
 
   def handle_event("task_toggle", params, socket) do
-    case ForgeWeb.ProjectLive.Tasks.handle_task_toggle(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns, stream: {:reset, stream_name, items}}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, stream(socket, stream_name, items, reset: true)}
+    socket = assign(socket, :expanded_task_id, nil)
 
-      {:error, :could_not_update} ->
-        {:noreply, put_flash(socket, :error, "Could not update task.")}
+    case ForgeWeb.ProjectLive.Tasks.handle_task_toggle(params, socket.assigns.project.id) do
+      {:ok, result} ->
+        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+        socket =
+          socket
+          |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+          |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+
+        apply_result(socket, {:ok, result})
+
+      other ->
+        apply_result(socket, other)
     end
   end
 
   def handle_event("task_delete", params, socket) do
-    case ForgeWeb.ProjectLive.Tasks.handle_task_delete(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns, stream_delete: {stream_name, item}}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, stream_delete(socket, stream_name, item)}
+    socket = assign(socket, :expanded_task_id, nil)
 
-      _ ->
+    apply_result(
+      socket,
+      ForgeWeb.ProjectLive.Tasks.handle_task_delete(params, socket.assigns.project.id)
+    )
+  end
+
+  def handle_event("task_edit_open", %{"id" => id}, socket) do
+    task = Projects.get_task!(id)
+
+    form =
+      task
+      |> Projects.change_task(%{})
+      |> to_form(as: :task)
+
+    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+    {:noreply,
+     socket
+     |> assign(:expanded_task_id, nil)
+     |> assign(:editing_task_id, task.id)
+     |> assign(:task_edit_form, form)
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("task_edit_cancel", _params, socket) do
+    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+    {:noreply,
+     socket
+     |> assign(:editing_task_id, nil)
+     |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("task_edit_validate", %{"task_id" => id, "task" => task_params}, socket) do
+    task = Projects.get_task!(id)
+
+    changeset =
+      task
+      |> Projects.change_task(task_params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :task_edit_form, to_form(changeset, as: :task))}
+  end
+
+  def handle_event("task_edit_save", params, socket) do
+    socket = assign(socket, :expanded_task_id, nil)
+
+    case ForgeWeb.ProjectLive.Tasks.handle_task_update(params, socket.assigns.project.id) do
+      {:ok, result} ->
+        socket =
+          result.assigns
+          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
+
+        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+        {:noreply,
+         socket
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:editing_task_id, nil)
+         |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+         |> stream(:tasks, tasks, reset: true)}
+
+      {:error, :blank_title} ->
         {:noreply, socket}
+
+      {:error, {:changeset, changeset}} ->
+        {:noreply, assign(socket, :task_edit_form, to_form(changeset, as: :task))}
     end
   end
 
+  def handle_event("task_details_toggle", %{"id" => id}, socket) do
+    expanded = socket.assigns.expanded_task_id
+    new_expanded = if(expanded == id, do: nil, else: id)
+    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
-  def handle_event("bom_create", params, socket) do
-    case ForgeWeb.ProjectLive.Bom.handle_bom_create(params, socket.assigns.project.id) do
+    {:noreply,
+     socket
+     |> assign(:expanded_task_id, new_expanded)
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("task_pin_cycle", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+    task = Projects.get_task!(id)
+    socket = assign(socket, :expanded_task_id, nil)
+
+    result =
+      case task.pin_status do
+        :current -> Projects.pin_task(id, :upcoming)
+        :upcoming -> Projects.unpin_task(id)
+        _ -> Projects.pin_task(id, :current)
+      end
+
+    case result do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
+
+        {:noreply,
+         socket
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:tasks_empty?, tasks == [])
+         |> stream(:tasks, tasks, reset: true)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not update pin status.")}
+    end
+  end
+
+  def handle_event("task_pin", %{"id" => id, "pin_status" => pin_status}, socket)
+      when pin_status in ["current", "upcoming"] do
+    project_id = socket.assigns.project.id
+
+    socket = assign(socket, :expanded_task_id, nil)
+
+    case Projects.pin_task(id, String.to_existing_atom(pin_status)) do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
+
+        {:noreply,
+         socket
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:tasks_empty?, tasks == [])
+         |> stream(:tasks, tasks, reset: true)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not pin task.")}
+    end
+  end
+
+  def handle_event("task_unpin", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+
+    socket = assign(socket, :expanded_task_id, nil)
+
+    case Projects.unpin_task(id) do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
+
+        {:noreply,
+         socket
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:tasks_empty?, tasks == [])
+         |> stream(:tasks, tasks, reset: true)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not unpin task.")}
+    end
+  end
+
+  def handle_event("tasks_reorder", %{"ids" => ids}, socket) do
+    project_id = socket.assigns.project.id
+    :ok = Projects.reorder_tasks(project_id, ids)
+
+    tasks = Projects.list_tasks_with_subtasks(project_id)
+
+    {:noreply,
+     socket
+     |> assign(:expanded_task_id, nil)
+     |> assign(:editing_task_id, nil)
+     |> assign(:subtask_form_task_id, nil)
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("subtasks_reorder", %{"parent_id" => parent_id, "ids" => ids}, socket) do
+    project_id = socket.assigns.project.id
+    :ok = Projects.reorder_subtasks(parent_id, ids)
+
+    tasks = Projects.list_tasks_with_subtasks(project_id)
+
+    {:noreply, stream(socket, :tasks, tasks, reset: true)}
+  end
+
+  def handle_event("subtask_form_open", %{"id" => id}, socket) do
+    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+    {:noreply,
+     socket
+     |> assign(:subtask_form_task_id, id)
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("subtask_form_close", %{"id" => id}, socket) do
+    new_value =
+      if to_string(socket.assigns.subtask_form_task_id) == to_string(id),
+        do: nil,
+        else: socket.assigns.subtask_form_task_id
+
+    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+
+    {:noreply,
+     socket
+     |> assign(:subtask_form_task_id, new_value)
+     |> stream(:tasks, tasks, reset: true)}
+  end
+
+  def handle_event("subtasks_toggle", %{"id" => id}, socket) do
+    id = to_string(id)
+    set = socket.assigns.collapsed_subtasks
+
+    new_set =
+      if MapSet.member?(set, id) do
+        MapSet.delete(set, id)
+      else
+        MapSet.put(set, id)
+      end
+
+    {:noreply, assign(socket, :collapsed_subtasks, new_set)}
+  end
+
+  def handle_event("toggle_note_form", _params, socket) do
+    {:noreply, assign(socket, :note_form_open?, !socket.assigns.note_form_open?)}
+  end
+
+  def handle_event("toggle_task_form", _params, socket) do
+    {:noreply, assign(socket, :task_form_open?, !socket.assigns.task_form_open?)}
+  end
+
+  def handle_event("toggle_bom_form", _params, socket) do
+    {:noreply, assign(socket, :bom_form_open?, !socket.assigns.bom_form_open?)}
+  end
+
+  def handle_event("note_create", params, socket) do
+    project_id = socket.assigns.project.id
+
+    case ForgeWeb.ProjectLive.Notes.handle_note_create(params, project_id) do
+      {:ok, _result} ->
+        note_count = Projects.count_journal_entries(project_id)
+        total_pages = max(1, ceil(note_count / @notes_per_page))
+        entries = Projects.list_journal_entries_page(project_id, 1, @notes_per_page)
+
+        socket =
+          socket
+          |> assign(:note_count, note_count)
+          |> assign(:note_page, 1)
+          |> assign(:note_total_pages, total_pages)
+          |> assign(:notes_empty?, entries == [])
+          |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
+          |> assign(:note_form_open?, false)
+          |> stream(:journal_entries, entries, reset: true)
+
+        {:noreply, socket}
+
+      {:error, :blank_body} ->
+        {:noreply, socket}
+
+      {:error, {:changeset, changeset}} ->
+        {:noreply, assign(socket, :note_form, to_form(changeset, as: :note))}
+    end
+  end
+
+  def handle_event("note_delete", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+    entry = Projects.get_journal_entry!(id)
+    {:ok, _} = Projects.delete_journal_entry(entry)
+
+    note_count = Projects.count_journal_entries(project_id)
+    total_pages = max(1, ceil(note_count / @notes_per_page))
+    page = min(socket.assigns.note_page, total_pages)
+    entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
+
+    socket =
+      socket
+      |> assign(:note_count, note_count)
+      |> assign(:note_page, page)
+      |> assign(:note_total_pages, total_pages)
+      |> assign(:notes_empty?, entries == [])
+      |> stream(:journal_entries, entries, reset: true)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("note_page", %{"page" => page_str}, socket) do
+    project_id = socket.assigns.project.id
+    page = String.to_integer(page_str)
+    page = page |> max(1) |> min(socket.assigns.note_total_pages)
+    entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
+
+    socket =
+      socket
+      |> assign(:note_page, page)
+      |> assign(:notes_empty?, entries == [])
+      |> stream(:journal_entries, entries, reset: true)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("bom_create", %{"bom" => bom_params}, socket) do
+    case ForgeWeb.ProjectLive.Bom.handle_bom_create(bom_params, socket.assigns.project.id) do
       {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
+        socket =
+          assigns
+          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
+          |> assign(:bom_form_open?, false)
+
         {:noreply, socket}
 
       {:error, {:changeset, changeset}} ->
         {:noreply, assign(socket, :bom_form, to_form(changeset, as: :bom))}
-
-      _ ->
-        {:noreply, socket}
     end
   end
 
   def handle_event("bom_delete", params, socket) do
-    case ForgeWeb.ProjectLive.Bom.handle_bom_delete(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      _ ->
-        {:noreply, socket}
-    end
+    apply_result(
+      socket,
+      ForgeWeb.ProjectLive.Bom.handle_bom_delete(params, socket.assigns.project.id)
+    )
   end
 
   def handle_event("bom_toggle", params, socket) do
@@ -249,72 +675,12 @@ defmodule ForgeWeb.ProjectLive.Show do
     end
   end
 
-  def handle_event("journal_create", params, socket) do
-    case ForgeWeb.ProjectLive.Journal.handle_journal_create(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, :journal_form, to_form(changeset, as: :journal))}
-
-      {:error, :blank_body} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("journal_edit", params, socket) do
-    case ForgeWeb.ProjectLive.Journal.handle_journal_edit(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("journal_cancel_edit", _params, socket) do
-    case ForgeWeb.ProjectLive.Journal.handle_journal_cancel_edit(%{}, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("journal_save_edit", params, socket) do
-    case ForgeWeb.ProjectLive.Journal.handle_journal_save_edit(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      {:error, {:changeset, changeset, entry_id}} ->
-        {:noreply, assign(socket, :journal_edit_form, to_form(changeset, as: :journal_edit))}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("journal_delete", params, socket) do
-    case ForgeWeb.ProjectLive.Journal.handle_journal_delete(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
   def handle_event("toggle_section", %{"section" => "tasks"}, socket) do
     open = !socket.assigns.sections_open.tasks
     socket = assign(socket, :sections_open, %{socket.assigns.sections_open | tasks: open})
 
     if open do
-      tasks = Projects.list_tasks(socket.assigns.project.id)
+      tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
       {:noreply,
        socket
@@ -322,6 +688,51 @@ defmodule ForgeWeb.ProjectLive.Show do
        |> stream(:tasks, tasks, reset: true)}
     else
       {:noreply, socket}
+    end
+  end
+
+  def handle_event("toggle_section", %{"section" => "bom"}, socket) do
+    open = !socket.assigns.sections_open.bom
+    {:noreply, assign(socket, :sections_open, %{socket.assigns.sections_open | bom: open})}
+  end
+
+  def handle_event("toggle_section", %{"section" => "notes"}, socket) do
+    open = !socket.assigns.sections_open.notes
+    socket = assign(socket, :sections_open, %{socket.assigns.sections_open | notes: open})
+
+    if open do
+      project_id = socket.assigns.project.id
+      page = socket.assigns.note_page
+      entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
+
+      {:noreply,
+       socket
+       |> assign(:notes_empty?, entries == [])
+       |> stream(:journal_entries, entries, reset: true)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("budget_edit", _params, socket) do
+    {:noreply, assign(socket, :budget_editing?, !socket.assigns.budget_editing?)}
+  end
+
+  def handle_event("budget_cancel", _params, socket) do
+    {:noreply, assign(socket, :budget_editing?, false)}
+  end
+
+  def handle_event("budget_update", %{"project" => params}, socket) do
+    case Projects.update_project(socket.assigns.project, params) do
+      {:ok, project} ->
+        {:noreply,
+         socket
+         |> assign(:project, project)
+         |> assign(:budget_editing?, false)
+         |> assign(:budget_form, budget_form(project))}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :budget_form, to_form(changeset, as: :project))}
     end
   end
 
@@ -334,4 +745,11 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> put_flash(:info, "Project deleted.")
      |> push_navigate(to: ~p"/projects")}
   end
+
+  defp budget_form(project) do
+    to_form(Projects.change_project(project), as: :project)
+  end
+
+  defp budget_display(nil), do: "No budget set"
+  defp budget_display(%Decimal{} = d), do: "#{Decimal.to_string(d, :normal)} kr"
 end
