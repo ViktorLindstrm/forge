@@ -25,7 +25,6 @@ RUN mkdir config
 COPY config/config.exs config/prod.exs config/
 RUN mix deps.compile
 
-COPY assets/package.json assets/package-lock.json* ./assets/
 COPY assets assets
 COPY priv priv
 COPY lib lib
