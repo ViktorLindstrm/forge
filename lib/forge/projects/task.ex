@@ -21,6 +21,7 @@ defmodule Forge.Projects.Task do
           sort_order: non_neg_integer(),
           parent_task_id: Ecto.UUID.t() | nil,
           parent_task: t() | Ecto.Association.NotLoaded.t(),
+          subtasks: [t()] | Ecto.Association.NotLoaded.t(),
           project_id: pos_integer() | nil,
           project: Forge.Projects.Project.t() | Ecto.Association.NotLoaded.t(),
           inserted_at: DateTime.t() | nil,

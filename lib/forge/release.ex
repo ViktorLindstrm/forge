@@ -24,10 +24,12 @@ defmodule Forge.Release do
     :ok
   end
 
+  @spec repos() :: [module()]
   defp repos do
     Application.fetch_env!(@app, :ecto_repos)
   end
 
+  @spec load_app() :: :ok | {:error, term()}
   defp load_app do
     Application.load(@app)
   end

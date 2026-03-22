@@ -281,6 +281,8 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:noreply, assign(socket, :project, project)}
   end
 
+  @spec apply_result(Phoenix.LiveView.Socket.t(), {:ok, map()} | {:error, :could_not_update}) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   defp apply_result(socket, {:ok, result}) when is_map(result) do
     socket =
       case Map.get(result, :assigns) do
@@ -746,10 +748,12 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> push_navigate(to: ~p"/projects")}
   end
 
+  @spec budget_form(Forge.Projects.Project.t()) :: Phoenix.HTML.Form.t()
   defp budget_form(project) do
     to_form(Projects.change_project(project), as: :project)
   end
 
+  @spec budget_display(Decimal.t() | nil) :: String.t()
   defp budget_display(nil), do: "No budget set"
   defp budget_display(%Decimal{} = d), do: "#{Decimal.to_string(d, :normal)} kr"
 end

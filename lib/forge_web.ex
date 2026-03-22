@@ -17,6 +17,7 @@ defmodule ForgeWeb do
   those modules here.
   """
 
+  @spec static_paths() :: [String.t()]
   def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do

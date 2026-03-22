@@ -216,9 +216,11 @@ defmodule ForgeWeb.ProjectLive.Form do
      |> apply_action(socket.assigns.live_action, params)}
   end
 
+  @spec return_to(String.t() | nil) :: String.t()
   defp return_to("show"), do: "show"
   defp return_to(_), do: "index"
 
+  @spec apply_action(Phoenix.LiveView.Socket.t(), atom(), map()) :: Phoenix.LiveView.Socket.t()
   defp apply_action(socket, :new, _params) do
     project = %Project{}
 
@@ -256,6 +258,8 @@ defmodule ForgeWeb.ProjectLive.Form do
     do_create_group(socket, name)
   end
 
+  @spec do_create_group(Phoenix.LiveView.Socket.t(), String.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   defp do_create_group(socket, name) when name == "" do
     {:noreply, put_flash(socket, :error, "Group name cannot be blank")}
   end
@@ -280,6 +284,8 @@ defmodule ForgeWeb.ProjectLive.Form do
     end
   end
 
+  @spec save_project(Phoenix.LiveView.Socket.t(), atom(), map()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   defp save_project(socket, :new, params) do
     case Projects.create_project(params) do
       {:ok, project} ->
@@ -306,10 +312,12 @@ defmodule ForgeWeb.ProjectLive.Form do
     end
   end
 
+  @spec return_path(String.t(), Forge.Projects.Project.t()) :: String.t()
   defp return_path("index", _), do: ~p"/projects"
   defp return_path("show", project), do: ~p"/projects/#{project}"
   defp return_path(_, _), do: ~p"/projects"
 
+  @spec color_dot(String.t()) :: String.t()
   defp color_dot("blue"), do: "bg-blue-500 border-blue-500 peer-checked:ring-blue-500"
   defp color_dot("violet"), do: "bg-violet-500 border-violet-500 peer-checked:ring-violet-500"
   defp color_dot("emerald"), do: "bg-emerald-500 border-emerald-500 peer-checked:ring-emerald-500"
@@ -319,6 +327,7 @@ defmodule ForgeWeb.ProjectLive.Form do
   defp color_dot("sky"), do: "bg-sky-500 border-sky-500 peer-checked:ring-sky-500"
   defp color_dot(_), do: "bg-gray-300 border-gray-300"
 
+  @spec peer_ring(String.t()) :: String.t()
   defp peer_ring("blue"), do: "peer-checked:ring-blue-500"
   defp peer_ring("violet"), do: "peer-checked:ring-violet-500"
   defp peer_ring("emerald"), do: "peer-checked:ring-emerald-500"

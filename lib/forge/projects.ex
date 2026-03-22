@@ -167,7 +167,7 @@ defmodule Forge.Projects do
   end
 
   @spec preload_pinned_tasks([Project.t()]) :: [Project.t()]
-  defp preload_pinned_tasks(projects) when is_list(projects) do
+  defp preload_pinned_tasks(projects) do
     project_ids = Enum.map(projects, & &1.id)
 
     if project_ids == [] do
@@ -189,8 +189,6 @@ defmodule Forge.Projects do
       end)
     end
   end
-
-  defp preload_pinned_tasks(other), do: other
 
   # ── Tasks ─────────────────────────────────────────────────────────────────
 

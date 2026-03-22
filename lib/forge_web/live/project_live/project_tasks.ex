@@ -6,15 +6,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
 
   alias ForgeWeb.ProjectLive.Result
 
-  @type project_id :: pos_integer()
-
-  @type task_params :: %{required(String.t()) => term()}
-
-  @type handler_result ::
-          Result.ok(Task.t())
-          | Result.error_changeset()
-          | {:error, :blank_title}
-          | {:error, :could_not_update}
+  @type project_id :: Projects.project_id()
 
   defdelegate list_tasks(project_id), to: Projects, as: :list_tasks
   defdelegate list_tasks_with_subtasks(project_id), to: Projects, as: :list_tasks_with_subtasks
@@ -26,7 +18,10 @@ defmodule ForgeWeb.ProjectLive.Tasks do
   defdelegate change_task(task, attrs), to: Projects, as: :change_task
   defdelegate task_stats(project_id), to: Projects, as: :task_stats
 
-  @spec handle_task_update(task_params(), project_id()) :: handler_result()
+  @spec handle_task_update(map(), project_id()) ::
+          Result.ok(Task.t())
+          | Result.error_changeset()
+          | {:error, :blank_title}
   def handle_task_update(%{"task_id" => id, "task" => params}, project_id) do
     task = Projects.get_task!(id)
 
@@ -61,7 +56,10 @@ defmodule ForgeWeb.ProjectLive.Tasks do
     end
   end
 
-  @spec handle_task_create(task_params(), project_id()) :: handler_result()
+  @spec handle_task_create(map(), project_id()) ::
+          Result.ok(Task.t())
+          | Result.error_changeset()
+          | {:error, :blank_title}
   def handle_task_create(%{"task" => params} = payload, project_id) do
     title = params |> Map.get("title", "") |> String.trim()
 
@@ -102,14 +100,17 @@ defmodule ForgeWeb.ProjectLive.Tasks do
     end
   end
 
+  @spec maybe_put_parent_task_id(map(), String.t() | nil) :: map()
   defp maybe_put_parent_task_id(attrs, nil), do: attrs
   defp maybe_put_parent_task_id(attrs, parent_id), do: Map.put(attrs, "parent_task_id", parent_id)
 
+  @spec blank_to_nil(String.t() | nil) :: String.t() | nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(other), do: other
 
-  @spec handle_task_toggle(task_params(), project_id()) :: handler_result()
+  @spec handle_task_toggle(map(), project_id()) ::
+          Result.ok(Task.t()) | {:error, :could_not_update}
   def handle_task_toggle(%{"id" => id}, project_id) do
     task = Projects.get_task!(id)
 
@@ -129,7 +130,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
     end
   end
 
-  @spec handle_task_delete(task_params(), project_id()) :: handler_result()
+  @spec handle_task_delete(map(), project_id()) :: Result.ok(Task.t())
   def handle_task_delete(%{"id" => id}, project_id) do
     task = Projects.get_task!(id)
     {:ok, _} = delete_task(task)

@@ -115,6 +115,7 @@ defmodule ForgeWeb.CoreComponents do
 
   ## JS Commands
 
+  @spec show(Phoenix.LiveView.JS.t(), String.t()) :: Phoenix.LiveView.JS.t()
   def show(js \\ %JS{}, selector) do
     JS.show(js,
       to: selector,
@@ -126,6 +127,7 @@ defmodule ForgeWeb.CoreComponents do
     )
   end
 
+  @spec hide(Phoenix.LiveView.JS.t(), String.t()) :: Phoenix.LiveView.JS.t()
   def hide(js \\ %JS{}, selector) do
     JS.hide(js,
       to: selector,
@@ -139,6 +141,7 @@ defmodule ForgeWeb.CoreComponents do
   @doc """
   Translates an error message using gettext.
   """
+  @spec translate_error({String.t(), keyword()}) :: String.t()
   def translate_error({msg, opts}) do
     if count = opts[:count] do
       Gettext.dngettext(ForgeWeb.Gettext, "errors", msg, msg, count, opts)
@@ -150,6 +153,7 @@ defmodule ForgeWeb.CoreComponents do
   @doc """
   Translates the errors for a field from a keyword list of errors.
   """
+  @spec translate_errors(keyword(), atom()) :: [String.t()]
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end

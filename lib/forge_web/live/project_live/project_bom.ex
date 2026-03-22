@@ -4,23 +4,14 @@ defmodule ForgeWeb.ProjectLive.Bom do
 
   alias ForgeWeb.ProjectLive.Result
 
-  @type project_id :: pos_integer()
-
-  @type bom_params :: %{
-          required(String.t()) => String.t() | number() | nil
-        }
-
-  @type handler_result ::
-          Result.ok(BomItem.t())
-          | Result.error_changeset()
-          | {:error, :could_not_update}
+  @type project_id :: Projects.project_id()
 
   defdelegate create_bom_item(attrs), to: Projects, as: :create_bom_item
   defdelegate delete_bom_item(item), to: Projects, as: :delete_bom_item
   defdelegate update_bom_item(item, attrs), to: Projects, as: :update_bom_item
   defdelegate bom_budget(project_id), to: Projects, as: :bom_budget
 
-  @spec handle_bom_create(bom_params(), project_id()) ::
+  @spec handle_bom_create(map(), project_id()) ::
           Result.ok(BomItem.t()) | Result.error_changeset()
   def handle_bom_create(params, project_id) do
     params = sanitize_bom_params(params)
@@ -70,9 +61,7 @@ defmodule ForgeWeb.ProjectLive.Bom do
     end
   end
 
-  @spec bom_params() :: %{
-          required(String.t()) => String.t() | pos_integer()
-        }
+  @spec bom_params() :: %{String.t() => String.t() | pos_integer()}
   def bom_params do
     %{
       "name" => "",
@@ -86,7 +75,7 @@ defmodule ForgeWeb.ProjectLive.Bom do
     }
   end
 
-  @spec sanitize_bom_params(bom_params()) :: map()
+  @spec sanitize_bom_params(map()) :: map()
   defp sanitize_bom_params(params) do
     params
     |> Map.update("name", "", &String.trim/1)

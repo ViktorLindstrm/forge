@@ -10,6 +10,7 @@ defmodule ForgeWeb.Layouts do
   attr :current_scope, :map, default: nil
   slot :inner_block, required: true
 
+  @spec app(map()) :: Phoenix.LiveView.Rendered.t()
   def app(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -44,6 +45,7 @@ defmodule ForgeWeb.Layouts do
   attr :flash, :map, required: true
   attr :id, :string, default: "flash-group"
 
+  @spec flash_group(map()) :: Phoenix.LiveView.Rendered.t()
   def flash_group(assigns) do
     ~H"""
     <div id={@id} aria-live="polite">
@@ -77,6 +79,7 @@ defmodule ForgeWeb.Layouts do
     """
   end
 
+  @spec theme_toggle(map()) :: Phoenix.LiveView.Rendered.t()
   def theme_toggle(assigns) do
     ~H"""
     <div class="relative flex flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-full p-0.5 gap-0.5">

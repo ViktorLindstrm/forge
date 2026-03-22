@@ -1,9 +1,7 @@
 defmodule ForgeWeb.ProjectLive.Components.Formatting do
   @moduledoc false
 
-  @type url :: String.t()
-
-  @spec url_display(url()) :: String.t()
+  @spec url_display(String.t()) :: String.t()
   def url_display(url) do
     url
     |> String.replace(~r/^https?:\/\//, "")

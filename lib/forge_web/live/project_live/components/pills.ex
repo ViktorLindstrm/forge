@@ -3,11 +3,7 @@ defmodule ForgeWeb.ProjectLive.Components.Pills do
 
   use ForgeWeb, :html
 
-  @type assigns :: Phoenix.LiveView.Socket.assigns()
-  @type rendered :: Phoenix.LiveView.Rendered.t()
-
-  @type pill_kind :: String.t()
-
+  @spec pill_label(String.t(), atom()) :: String.t() | atom()
   defp pill_label("status", :in_progress), do: "In progress"
   defp pill_label("status", :blocked), do: "Blocked"
   defp pill_label("status", other), do: other |> to_string() |> String.capitalize()
@@ -17,6 +13,7 @@ defmodule ForgeWeb.ProjectLive.Components.Pills do
   defp pill_label("priority", :high), do: "High"
   defp pill_label(_, value), do: value
 
+  @spec pill_classes(String.t(), atom()) :: String.t()
   defp pill_classes("status", :in_progress),
     do: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
 
@@ -40,7 +37,7 @@ defmodule ForgeWeb.ProjectLive.Components.Pills do
   attr :kind, :string, required: true
   attr :value, :any, required: true
 
-  @spec pill(assigns()) :: rendered()
+  @spec pill(map()) :: Phoenix.LiveView.Rendered.t()
   def pill(assigns) do
     assigns =
       assigns

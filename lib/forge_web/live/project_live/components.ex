@@ -12,7 +12,7 @@ defmodule ForgeWeb.ProjectLive.Components do
 
   defdelegate pill(assigns), to: Pills
 
-  @spec color_bg(atom()) :: String.t()
+  @spec color_bg(Forge.Projects.Project.color()) :: String.t()
   def color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
   def color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
   def color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"
@@ -22,19 +22,19 @@ defmodule ForgeWeb.ProjectLive.Components do
   def color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
   def color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
 
+  @spec url_display(String.t()) :: String.t()
   def url_display(url), do: Formatting.url_display(url)
 
+  @spec bom_params() :: map()
   def bom_params, do: Bom.bom_params()
 
+  @spec note_form() :: Phoenix.HTML.Form.t()
   def note_form, do: Notes.note_form()
 
-  @type assigns :: map()
-  @type rendered :: Phoenix.LiveView.Rendered.t()
-
-  @spec status_badge(assigns()) :: rendered()
+  @spec status_badge(map()) :: Phoenix.LiveView.Rendered.t()
   defdelegate status_badge(assigns), to: Badges
 
-  @spec summary_grid(assigns()) :: rendered()
+  @spec summary_grid(map()) :: Phoenix.LiveView.Rendered.t()
   attr :task_counts, :map, required: true
   attr :project, :any, required: true
   attr :bom_budget, :any, required: true
@@ -86,7 +86,7 @@ defmodule ForgeWeb.ProjectLive.Components do
     """
   end
 
-  @spec tasks_component(assigns()) :: rendered()
+  @spec tasks_component(map()) :: Phoenix.LiveView.Rendered.t()
   attr :task_counts, :map, required: true
   attr :task_form, :any, required: true
   attr :task_form_open?, :boolean, required: true
@@ -520,7 +520,7 @@ defmodule ForgeWeb.ProjectLive.Components do
     if total == 0, do: "No items", else: "#{received}/#{total} received"
   end
 
-  @spec bom_component(assigns()) :: rendered()
+  @spec bom_component(map()) :: Phoenix.LiveView.Rendered.t()
   attr :sections_open, :map, required: true
   attr :bom_budget, :any, required: true
   attr :bom_form, :any, required: true
@@ -693,7 +693,7 @@ defmodule ForgeWeb.ProjectLive.Components do
     """
   end
 
-  @spec notes_component(assigns()) :: rendered()
+  @spec notes_component(map()) :: Phoenix.LiveView.Rendered.t()
   attr :sections_open, :map, required: true
   attr :project, :any, required: true
   attr :note_form, :any, required: true

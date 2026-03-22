@@ -349,9 +349,11 @@ defmodule ForgeWeb.ProjectLive.Index do
   defp filter_projects(projects, :all), do: projects
   defp filter_projects(projects, status), do: Enum.filter(projects, &(&1.status == status))
 
+  @spec group_section_id(Forge.Projects.ProjectGroup.t() | nil) :: String.t() | pos_integer()
   defp group_section_id(nil), do: "ungrouped"
   defp group_section_id(group), do: group.id
 
+  @spec status_classes(Forge.Projects.Project.status()) :: String.t()
   defp status_classes(:active),
     do: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
 
@@ -366,12 +368,14 @@ defmodule ForgeWeb.ProjectLive.Index do
 
   defp status_classes(_), do: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
 
+  @spec status_dot(Forge.Projects.Project.status()) :: String.t()
   defp status_dot(:active), do: "bg-emerald-500"
   defp status_dot(:idea), do: "bg-violet-500"
   defp status_dot(:paused), do: "bg-amber-500"
   defp status_dot(:done), do: "bg-blue-500"
   defp status_dot(_), do: "bg-gray-400"
 
+  @spec color_bg(Forge.Projects.Project.color()) :: String.t()
   defp color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
   defp color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
   defp color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"
@@ -381,30 +385,35 @@ defmodule ForgeWeb.ProjectLive.Index do
   defp color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
   defp color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
 
+  @spec stat_bg(String.t()) :: String.t()
   defp stat_bg("emerald"), do: "bg-emerald-50 dark:bg-emerald-900/20"
   defp stat_bg("violet"), do: "bg-violet-50 dark:bg-violet-900/20"
   defp stat_bg("amber"), do: "bg-amber-50 dark:bg-amber-900/20"
   defp stat_bg("blue"), do: "bg-blue-50 dark:bg-blue-900/20"
   defp stat_bg(_), do: "bg-gray-50 dark:bg-gray-800"
 
+  @spec stat_icon_bg(String.t()) :: String.t()
   defp stat_icon_bg("emerald"), do: "bg-emerald-100 dark:bg-emerald-900/50"
   defp stat_icon_bg("violet"), do: "bg-violet-100 dark:bg-violet-900/50"
   defp stat_icon_bg("amber"), do: "bg-amber-100 dark:bg-amber-900/50"
   defp stat_icon_bg("blue"), do: "bg-blue-100 dark:bg-blue-900/50"
   defp stat_icon_bg(_), do: "bg-gray-100 dark:bg-gray-700"
 
+  @spec stat_icon_color(String.t()) :: String.t()
   defp stat_icon_color("emerald"), do: "text-emerald-600 dark:text-emerald-400"
   defp stat_icon_color("violet"), do: "text-violet-600 dark:text-violet-400"
   defp stat_icon_color("amber"), do: "text-amber-600 dark:text-amber-400"
   defp stat_icon_color("blue"), do: "text-blue-600 dark:text-blue-400"
   defp stat_icon_color(_), do: "text-gray-500"
 
+  @spec stat_text(String.t()) :: String.t()
   defp stat_text("emerald"), do: "text-emerald-700 dark:text-emerald-300"
   defp stat_text("violet"), do: "text-violet-700 dark:text-violet-300"
   defp stat_text("amber"), do: "text-amber-700 dark:text-amber-300"
   defp stat_text("blue"), do: "text-blue-700 dark:text-blue-300"
   defp stat_text(_), do: "text-gray-700 dark:text-gray-300"
 
+  @spec url_display(String.t()) :: String.t()
   defp url_display(url) do
     url
     |> String.replace(~r/^https?:\/\//, "")

@@ -1,9 +1,7 @@
 defmodule ForgeWeb.ProjectLive.Components.TaskHelpers do
   @moduledoc false
 
-  @type counts :: %{optional(atom()) => non_neg_integer()}
-
-  @spec task_progress_label(counts()) :: String.t()
+  @spec task_progress_label(Forge.Projects.task_stats()) :: String.t()
   def task_progress_label(counts) do
     total = counts |> Map.values() |> Enum.sum()
     done = Map.get(counts, :done, 0)

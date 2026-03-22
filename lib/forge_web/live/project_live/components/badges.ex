@@ -3,12 +3,9 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
 
   use ForgeWeb, :html
 
-  @type assigns :: Phoenix.LiveView.Socket.assigns()
-  @type rendered :: Phoenix.LiveView.Rendered.t()
-
   attr :status, :any, required: true
 
-  @spec status_badge(assigns()) :: rendered()
+  @spec status_badge(map()) :: Phoenix.LiveView.Rendered.t()
   def status_badge(assigns) do
     ~H"""
     <span class={[
@@ -21,6 +18,7 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
     """
   end
 
+  @spec status_classes(Forge.Projects.Project.status()) :: String.t()
   defp status_classes(:active),
     do: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
 
@@ -35,13 +33,14 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
 
   defp status_classes(_), do: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
 
+  @spec status_dot(Forge.Projects.Project.status()) :: String.t()
   defp status_dot(:active), do: "bg-emerald-500"
   defp status_dot(:idea), do: "bg-violet-500"
   defp status_dot(:paused), do: "bg-amber-500"
   defp status_dot(:done), do: "bg-blue-500"
   defp status_dot(_), do: "bg-gray-400"
 
-  @spec color_bg(Forge.Projects.Project.color() | atom()) :: String.t()
+  @spec color_bg(Forge.Projects.Project.color()) :: String.t()
   def color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
   def color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
   def color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"

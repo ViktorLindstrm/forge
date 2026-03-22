@@ -4,20 +4,14 @@ defmodule ForgeWeb.ProjectLive.Notes do
 
   alias ForgeWeb.ProjectLive.Result
 
-  @type project_id :: pos_integer()
-
-  @type note_params :: %{required(String.t()) => String.t() | nil}
-
-  @type handler_result ::
-          Result.ok(JournalEntry.t())
-          | Result.error_changeset()
-          | {:error, :blank_body}
+  @type project_id :: Projects.project_id()
 
   defdelegate list_journal_entries(project_id), to: Projects
   defdelegate create_journal_entry(attrs), to: Projects
   defdelegate delete_journal_entry(entry), to: Projects
 
-  @spec handle_note_create(note_params(), project_id()) :: handler_result()
+  @spec handle_note_create(%{required(String.t()) => map()}, project_id()) ::
+          Result.ok(JournalEntry.t()) | Result.error_changeset() | {:error, :blank_body}
   def handle_note_create(%{"note" => params}, project_id) do
     body = params |> Map.get("body", "") |> String.trim()
 
