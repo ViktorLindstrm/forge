@@ -15,13 +15,13 @@ services:
       retries: 10
 
   app:
-    build: .
+    image: ghcr.io/viktorlindstrm/forge:latest
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "4000:4000"
+      - "5000:4000"
     environment:
       PHX_SERVER: "true"
       PHX_HOST: "localhost"
