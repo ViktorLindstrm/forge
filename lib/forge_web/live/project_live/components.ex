@@ -211,7 +211,10 @@ defmodule ForgeWeb.ProjectLive.Components do
                     >
                       <.icon
                         name="hero-chevron-right"
-                        class={["size-3.5 transition-transform", if(@expanded_task_id == task.id, do: "rotate-90")]}
+                        class={[
+                          "size-3.5 transition-transform",
+                          if(@expanded_task_id == task.id, do: "rotate-90")
+                        ]}
                       />
                     </button>
 
@@ -625,15 +628,54 @@ defmodule ForgeWeb.ProjectLive.Components do
 
         <div id="bom-form-wrapper" class={if @bom_form_open?, do: "mt-4", else: "hidden mt-4"}>
           <.form for={@bom_form} id="bom-quick-form" phx-submit="bom_create" class="space-y-3">
-            <.field field={@bom_form[:name]} type="text" label="Item name" placeholder="e.g. Arduino Uno" />
+            <.field
+              field={@bom_form[:name]}
+              type="text"
+              label="Item name"
+              placeholder="e.g. Arduino Uno"
+            />
             <div class="grid grid-cols-2 gap-3">
-              <.field field={@bom_form[:quantity]} type="number" label="Quantity (how many)" placeholder="1" wrapper_class="!mb-0" />
-              <.field field={@bom_form[:unit]} type="text" label="Unit of measure" placeholder="e.g. pcs, m, kg" wrapper_class="!mb-0" />
+              <.field
+                field={@bom_form[:quantity]}
+                type="number"
+                label="Quantity (how many)"
+                placeholder="1"
+                wrapper_class="!mb-0"
+              />
+              <.field
+                field={@bom_form[:unit]}
+                type="text"
+                label="Unit of measure"
+                placeholder="e.g. pcs, m, kg"
+                wrapper_class="!mb-0"
+              />
             </div>
-            <.field field={@bom_form[:unit_price]} type="number" step="0.01" label="Unit price in SEK (cost per unit)" placeholder="e.g. 49.99" />
-            <.field field={@bom_form[:supplier]} type="text" label="Supplier (where to buy)" placeholder="e.g. Mouser, Digikey" />
-            <.field field={@bom_form[:link]} type="text" label="Product link (URL to item)" placeholder="https://…" />
-            <.field field={@bom_form[:notes]} type="textarea" label="Notes (any extra info)" rows={2} placeholder="e.g. check lead time, substitute ok" />
+            <.field
+              field={@bom_form[:unit_price]}
+              type="number"
+              step="0.01"
+              label="Unit price in SEK (cost per unit)"
+              placeholder="e.g. 49.99"
+            />
+            <.field
+              field={@bom_form[:supplier]}
+              type="text"
+              label="Supplier (where to buy)"
+              placeholder="e.g. Mouser, Digikey"
+            />
+            <.field
+              field={@bom_form[:link]}
+              type="text"
+              label="Product link (URL to item)"
+              placeholder="https://…"
+            />
+            <.field
+              field={@bom_form[:notes]}
+              type="textarea"
+              label="Notes (any extra info)"
+              rows="2"
+              placeholder="e.g. check lead time, substitute ok"
+            />
             <div class="flex justify-end">
               <button
                 type="submit"

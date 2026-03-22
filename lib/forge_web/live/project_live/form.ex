@@ -264,7 +264,9 @@ defmodule ForgeWeb.ProjectLive.Form do
     case Projects.create_project_group(%{"name" => name}) do
       {:ok, group} ->
         groups = Projects.list_project_groups()
-        changeset = Projects.change_project(socket.assigns.project, %{"project_group_id" => group.id})
+
+        changeset =
+          Projects.change_project(socket.assigns.project, %{"project_group_id" => group.id})
 
         {:noreply,
          socket

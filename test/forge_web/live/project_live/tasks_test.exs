@@ -27,7 +27,7 @@ defmodule ForgeWeb.ProjectLive.TasksTest do
         assert Keyword.has_key?(result.assigns, :task_counts)
         assert Keyword.has_key?(result.assigns, :task_form)
         assert Keyword.has_key?(result.assigns, :tasks_empty?)
-        assert result.stream == {:reset, :tasks, Projects.list_tasks(project.id)}
+        assert result.stream == {:reset, :tasks, Projects.list_tasks_with_subtasks(project.id)}
       end
     end
 

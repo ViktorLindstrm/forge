@@ -123,7 +123,9 @@ defmodule ForgeWeb.ProjectLive.Index do
       <%= if @visible_projects == [] do %>
         <div class="flex items-center gap-2 py-6 text-gray-400 dark:text-gray-600 text-sm">
           <.icon name="hero-funnel" class="size-4" />
-          <span>No {if @active_filter != :all, do: to_string(@active_filter), else: ""} projects in this group</span>
+          <span>
+            No {if @active_filter != :all, do: to_string(@active_filter), else: ""} projects in this group
+          </span>
         </div>
       <% else %>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
