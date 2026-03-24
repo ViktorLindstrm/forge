@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#0f172a"/>
+  <g transform="translate(40,40)">
+    <rect width="1120" height="620" rx="12" fill="#fff" />
+    <text x="36" y="48" font-family="Inter, Arial" font-size="28" fill="#0f172a">Projects</text>
+    <text x="36" y="82" font-family="Inter, Arial" font-size="14" fill="#6b7280">Overview — 15 projects</text>
+
+    <rect x="36" y="120" width="320" height="56" rx="8" fill="#f8fafc" stroke="#e6e9ef"/>
+    <text x="56" y="156" font-family="Inter, Arial" font-size="16" fill="#111827">New Project</text>
+
+    <g transform="translate(380,120)">
+      <rect x="0" y="0" width="720" height="480" rx="8" fill="#ffffff" stroke="#e6e9ef"/>
+      <text x="18" y="36" font-family="Inter, Arial" font-size="18" fill="#111827">Garden Weather Station</text>
+      <text x="18" y="64" font-family="Inter, Arial" font-size="14" fill="#6b7280">ESP32-S3 · BME280</text>
+
+      <rect x="18" y="120" width="520" height="40" rx="6" fill="#ffffff" stroke="#e6e9ef"/>
+      <text x="30" y="146" font-family="Inter, Arial" font-size="14" fill="#6b7280">Tasks: 0 · BOM: 0</text>
+    </g>
+  </g>
+</svg>
