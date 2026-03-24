@@ -81,8 +81,9 @@ defmodule Forge.Projects do
 
   @spec list_projects() :: [Project.t()]
   def list_projects do
-    Ash.read!(Project)
-    |> preload_pinned_tasks()
+    Project
+    |> Ash.Query.load([:current_task, :upcoming_task])
+    |> Ash.read!()
   end
 
   @type grouped_projects :: [{ProjectGroup.t() | nil, [Project.t()]}]
@@ -90,7 +91,7 @@ defmodule Forge.Projects do
   @spec list_projects_grouped() :: grouped_projects()
   def list_projects_grouped do
     groups = list_project_groups()
-    projects = Ash.read!(Project) |> preload_pinned_tasks()
+    projects = list_projects()
 
     by_group = Enum.group_by(projects, & &1.project_group_id)
 
@@ -112,8 +113,8 @@ defmodule Forge.Projects do
   def list_projects_by_status(status) do
     Project
     |> Ash.Query.filter(status == ^status)
+    |> Ash.Query.load([:current_task, :upcoming_task])
     |> Ash.read!()
-    |> preload_pinned_tasks()
   end
 
   @spec get_project!(project_id()) :: Project.t()
@@ -157,28 +158,6 @@ defmodule Forge.Projects do
     Ash.read!(Project)
     |> Enum.group_by(& &1.status)
     |> Map.new(fn {status, projects} -> {status, length(projects)} end)
-  end
-
-  @spec preload_pinned_tasks([Project.t()]) :: [Project.t()]
-  defp preload_pinned_tasks(projects) do
-    project_ids = Enum.map(projects, & &1.id)
-
-    if project_ids == [] do
-      Enum.map(projects, &Map.put(&1, :pinned_tasks, %{current: nil, upcoming: nil}))
-    else
-      pinned_tasks =
-        Task
-        |> Ash.Query.filter(project_id in ^project_ids and pin_status in [:current, :upcoming])
-        |> Ash.read!(authorize?: false)
-        |> Enum.group_by(& &1.project_id)
-
-      Enum.map(projects, fn project ->
-        tasks = Map.get(pinned_tasks, project.id, [])
-        current = Enum.find(tasks, &(&1.pin_status == :current))
-        upcoming = Enum.find(tasks, &(&1.pin_status == :upcoming))
-        Map.put(project, :pinned_tasks, %{current: current, upcoming: upcoming})
-      end)
-    end
   end
 
   # ── Tasks ─────────────────────────────────────────────────────────────────
@@ -460,6 +439,9 @@ defmodule Forge.Projects do
       {k, v} when is_binary(k) -> {String.to_existing_atom(k), v}
       {k, v} -> {k, v}
     end)
+  rescue
+    ArgumentError ->
+      attrs
   end
 
   @spec stringify(map()) :: map()

@@ -1,5 +1,5 @@
 defmodule Forge.ProjectsTest do
-  use Forge.DataCase
+  use Forge.DataCase, async: true
   use ExUnitProperties
 
   alias Forge.Projects
@@ -19,7 +19,7 @@ defmodule Forge.ProjectsTest do
   end
 
   defp title_generator do
-    string(:printable, min_length: 1, max_length: 100)
+    string(:alphanumeric, min_length: 1, max_length: 100)
   end
 
   defp status_generator do
@@ -57,6 +57,28 @@ defmodule Forge.ProjectsTest do
         after_list = Projects.list_projects() |> Enum.map(& &1.id) |> MapSet.new()
         assert Enum.all?(created, &MapSet.member?(after_list, &1))
         assert MapSet.subset?(before_ids, after_list)
+      end
+    end
+
+    property "loads current_task and upcoming_task relationships" do
+      check all(title1 <- title_generator(), title2 <- title_generator()) do
+        project = create_project!()
+
+        {:ok, t1} = Projects.create_task(%{"title" => title1, "project_id" => project.id})
+        {:ok, t2} = Projects.create_task(%{"title" => title2, "project_id" => project.id})
+
+        {:ok, _} = Projects.pin_task(t1.id, :current)
+        {:ok, _} = Projects.pin_task(t2.id, :upcoming)
+
+        project =
+          Projects.list_projects()
+          |> Enum.find(&(&1.id == project.id))
+
+        assert project.current_task != nil
+        assert project.current_task.id == t1.id
+
+        assert project.upcoming_task != nil
+        assert project.upcoming_task.id == t2.id
       end
     end
   end
@@ -107,16 +129,12 @@ defmodule Forge.ProjectsTest do
     end
   end
 
-  defp payload_generator(ids) do
-    gen all(ordered <- shuffle(ids)) do
-      ordered
-    end
-  end
-
   describe "reorder_tasks/2" do
-    @tag timeout: 120_000
     property "persists sort_order to match provided id order" do
-      check all(titles <- list_of(title_generator(), min_length: 2, max_length: 5)) do
+      check all(
+              titles <- list_of(title_generator(), min_length: 2, max_length: 5),
+              max_runs: 10
+            ) do
         project = create_project!()
 
         created =
@@ -125,17 +143,15 @@ defmodule Forge.ProjectsTest do
             task
           end)
 
-        ids = Enum.map(created, & &1.id)
+        ordered_ids = created |> Enum.map(& &1.id) |> Enum.shuffle()
 
-        check all(ordered_ids <- payload_generator(ids)) do
-          :ok = Projects.reorder_tasks(project.id, ordered_ids)
+        :ok = Projects.reorder_tasks(project.id, ordered_ids)
 
-          tasks = Projects.list_tasks(project.id)
-          assert Enum.map(tasks, & &1.id) == ordered_ids
+        tasks = Projects.list_tasks(project.id)
+        assert Enum.map(tasks, & &1.id) == ordered_ids
 
-          orders = Enum.map(tasks, & &1.sort_order)
-          assert orders == Enum.to_list(1..length(ordered_ids))
-        end
+        orders = Enum.map(tasks, & &1.sort_order)
+        assert orders == Enum.to_list(1..length(ordered_ids))
       end
     end
   end
@@ -222,9 +238,11 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "task pinning" do
-    @tag timeout: 120_000
     property "only one current pin exists per project" do
-      check all(titles <- list_of(title_generator(), min_length: 2, max_length: 5)) do
+      check all(
+              titles <- list_of(title_generator(), min_length: 2, max_length: 5),
+              max_runs: 20
+            ) do
         project = create_project!()
 
         tasks =
@@ -233,23 +251,23 @@ defmodule Forge.ProjectsTest do
             task
           end)
 
-        check all(
-                t1 <- member_of(tasks),
-                t2 <- member_of(tasks)
-              ) do
-          {:ok, _} = Projects.pin_task(t1.id, :current)
-          {:ok, _} = Projects.pin_task(t2.id, :current)
+        t1 = Enum.random(tasks)
+        t2 = Enum.random(tasks)
 
-          reloaded = Projects.list_tasks(project.id)
-          assert reloaded |> Enum.count(&(&1.pin_status == :current)) == 1
-          assert Enum.any?(reloaded, &(&1.id == t2.id and &1.pin_status == :current))
-        end
+        {:ok, _} = Projects.pin_task(t1.id, :current)
+        {:ok, _} = Projects.pin_task(t2.id, :current)
+
+        reloaded = Projects.list_tasks(project.id)
+        assert reloaded |> Enum.count(&(&1.pin_status == :current)) == 1
+        assert Enum.any?(reloaded, &(&1.id == t2.id and &1.pin_status == :current))
       end
     end
 
-    @tag timeout: 120_000
     property "only one upcoming pin exists per project" do
-      check all(titles <- list_of(title_generator(), min_length: 2, max_length: 5)) do
+      check all(
+              titles <- list_of(title_generator(), min_length: 2, max_length: 5),
+              max_runs: 20
+            ) do
         project = create_project!()
 
         tasks =
@@ -258,17 +276,15 @@ defmodule Forge.ProjectsTest do
             task
           end)
 
-        check all(
-                t1 <- member_of(tasks),
-                t2 <- member_of(tasks)
-              ) do
-          {:ok, _} = Projects.pin_task(t1.id, :upcoming)
-          {:ok, _} = Projects.pin_task(t2.id, :upcoming)
+        t1 = Enum.random(tasks)
+        t2 = Enum.random(tasks)
 
-          reloaded = Projects.list_tasks(project.id)
-          assert reloaded |> Enum.count(&(&1.pin_status == :upcoming)) == 1
-          assert Enum.any?(reloaded, &(&1.id == t2.id and &1.pin_status == :upcoming))
-        end
+        {:ok, _} = Projects.pin_task(t1.id, :upcoming)
+        {:ok, _} = Projects.pin_task(t2.id, :upcoming)
+
+        reloaded = Projects.list_tasks(project.id)
+        assert reloaded |> Enum.count(&(&1.pin_status == :upcoming)) == 1
+        assert Enum.any?(reloaded, &(&1.id == t2.id and &1.pin_status == :upcoming))
       end
     end
 

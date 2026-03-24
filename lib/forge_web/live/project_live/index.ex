@@ -173,13 +173,11 @@ defmodule ForgeWeb.ProjectLive.Index do
       </div>
 
       <div
-        :if={
-          @project.pinned_tasks && (@project.pinned_tasks.current || @project.pinned_tasks.upcoming)
-        }
+        :if={@project.current_task || @project.upcoming_task}
         class="space-y-1"
       >
         <div
-          :if={@project.pinned_tasks.current}
+          :if={@project.current_task}
           class="rounded-lg border border-emerald-100 dark:border-emerald-900/40 bg-emerald-50/70 dark:bg-emerald-900/20 px-2 py-1"
           id={"project-#{@project.id}-pin-current"}
         >
@@ -187,12 +185,12 @@ defmodule ForgeWeb.ProjectLive.Index do
             Current
           </p>
           <p class="text-xs font-medium text-gray-900 dark:text-white truncate">
-            {@project.pinned_tasks.current.title}
+            {@project.current_task.title}
           </p>
         </div>
 
         <div
-          :if={@project.pinned_tasks.upcoming}
+          :if={@project.upcoming_task}
           class="rounded-lg border border-sky-100 dark:border-sky-900/40 bg-sky-50/70 dark:bg-sky-900/20 px-2 py-1"
           id={"project-#{@project.id}-pin-upcoming"}
         >
@@ -200,7 +198,7 @@ defmodule ForgeWeb.ProjectLive.Index do
             Upcoming
           </p>
           <p class="text-xs font-medium text-gray-900 dark:text-white truncate">
-            {@project.pinned_tasks.upcoming.title}
+            {@project.upcoming_task.title}
           </p>
         </div>
       </div>

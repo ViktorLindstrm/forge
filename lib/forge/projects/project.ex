@@ -105,6 +105,16 @@ defmodule Forge.Projects.Project do
       public? true
     end
 
+    has_one :current_task, Forge.Projects.Task do
+      public? true
+      filter expr(pin_status == :current)
+    end
+
+    has_one :upcoming_task, Forge.Projects.Task do
+      public? true
+      filter expr(pin_status == :upcoming)
+    end
+
     has_many :bom_items, Forge.Projects.BomItem do
       public? true
     end
@@ -128,10 +138,7 @@ defmodule Forge.Projects.Project do
   @type status :: :idea | :active | :paused | :done
   @type color :: :blue | :violet | :emerald | :amber | :rose | :orange | :sky
 
-  @type pinned_tasks :: %{
-          current: Forge.Projects.Task.t() | nil,
-          upcoming: Forge.Projects.Task.t() | nil
-        }
+  @type pinned_task :: Forge.Projects.Task.t() | nil
 
   @type t :: %__MODULE__{
           id: pos_integer() | nil,
@@ -144,6 +151,8 @@ defmodule Forge.Projects.Project do
           color: color(),
           budget: Decimal.t() | nil,
           project_group_id: pos_integer() | nil,
+          current_task: pinned_task(),
+          upcoming_task: pinned_task(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
