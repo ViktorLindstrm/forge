@@ -58,9 +58,9 @@ erDiagram
   }
   "Forge.Projects.JournalEntry" ||--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.Project" |o--o{ "Forge.Projects.ProjectGroup" : ""
+  "Forge.Projects.BomItem" ||--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.Project" }o--|| "Forge.Projects.Task" : ""
   "Forge.Projects.Task" |o--o{ "Forge.Projects.Task" : ""
-  "Forge.Projects.BomItem" ||--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.Project" }o--o| "Forge.Projects.Task" : ""
   "Forge.Projects.BomItem" |o--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.JournalEntry" |o--o{ "Forge.Projects.Project" : ""
