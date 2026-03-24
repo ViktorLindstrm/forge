@@ -813,7 +813,7 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div :if={@note_form_open?} id="note-form-wrapper" class="mt-4">
+        <div id="note-form-wrapper" class={["mt-4", if(@note_form_open?, do: "", else: "hidden")]}>
           <.form for={@note_form} id="note-quick-form" phx-submit="note_create" class="space-y-3">
             <.input field={@note_form[:title]} type="text" label="Title (optional)" />
             <.input field={@note_form[:body]} type="textarea" label="Body" rows={4} />

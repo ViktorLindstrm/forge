@@ -67,5 +67,6 @@ defmodule Forge.Projects.Task do
       :project_id
     ])
     |> validate_required([:title, :project_id])
+    |> validate_number(:sort_order, greater_than_or_equal_to: 0)
   end
 end

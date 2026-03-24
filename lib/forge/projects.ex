@@ -266,22 +266,30 @@ defmodule Forge.Projects do
     new_status = if done?, do: :done, else: :todo
 
     Repo.transaction(fn ->
-      {:ok, task} = update_task(task, %{status: new_status})
+      case update_task(task, %{status: new_status}) do
+        {:ok, updated_task} ->
+          if updated_task.parent_task_id == nil do
+            cascade_task_status(updated_task, new_status)
+          end
 
-      if task.parent_task_id == nil do
-        cascade_task_status(task, new_status)
+          update_task_ancestors(updated_task)
+
+          get_task!(updated_task.id)
+
+        {:error, changeset} ->
+          Repo.rollback(changeset)
       end
-
-      update_task_ancestors(task)
-
-      get_task!(task.id)
     end)
     |> case do
       {:ok, updated} ->
         {:ok, updated}
 
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         {:error, changeset}
+
+      {:error, reason} ->
+        {:error,
+         Ecto.Changeset.add_error(Ecto.Changeset.change(task), :base, inspect(reason))}
     end
   end
 
@@ -308,8 +316,13 @@ defmodule Forge.Projects do
         desired = if all_done?, do: :done, else: :todo
 
         if parent.status != desired do
-          {:ok, parent} = update_task(parent, %{status: desired, pin_status: nil})
-          update_task_ancestors(parent)
+          case update_task(parent, %{status: desired, pin_status: nil}) do
+            {:ok, updated_parent} ->
+              update_task_ancestors(updated_parent)
+
+            {:error, changeset} ->
+              Repo.rollback(changeset)
+          end
         else
           :ok
         end
@@ -366,9 +379,11 @@ defmodule Forge.Projects do
   defp maybe_put_next_task_sort_order(attrs), do: attrs
 
   @spec maybe_clear_pin_status_for_done(map()) :: map()
-  defp maybe_clear_pin_status_for_done(%{"status" => status} = attrs)
-       when status in ["done", :done],
-       do: Map.put(attrs, "pin_status", nil)
+  defp maybe_clear_pin_status_for_done(%{"status" => "done"} = attrs),
+    do: Map.put(attrs, "pin_status", nil)
+
+  defp maybe_clear_pin_status_for_done(%{"status" => :done} = attrs),
+    do: Map.put(attrs, "pin_status", nil)
 
   defp maybe_clear_pin_status_for_done(%{status: :done} = attrs),
     do: Map.put(attrs, :pin_status, nil)
