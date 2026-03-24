@@ -288,8 +288,7 @@ defmodule Forge.Projects do
         {:error, changeset}
 
       {:error, reason} ->
-        {:error,
-         Ecto.Changeset.add_error(Ecto.Changeset.change(task), :base, inspect(reason))}
+        {:error, Ecto.Changeset.add_error(Ecto.Changeset.change(task), :base, inspect(reason))}
     end
   end
 
