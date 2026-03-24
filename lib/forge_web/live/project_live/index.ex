@@ -326,7 +326,13 @@ defmodule ForgeWeb.ProjectLive.Index do
         other -> String.to_existing_atom(other)
       end
 
-    group_filters = Map.put(socket.assigns.group_filters, group_key, status)
+    key =
+      case Integer.parse(group_key) do
+        {id, ""} -> id
+        _ -> group_key
+      end
+
+    group_filters = Map.put(socket.assigns.group_filters, key, status)
     {:noreply, assign(socket, :group_filters, group_filters)}
   end
 

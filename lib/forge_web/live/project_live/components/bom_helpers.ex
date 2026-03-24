@@ -29,8 +29,8 @@ defmodule ForgeWeb.ProjectLive.Components.BomHelpers do
   end
 
   @spec budget_label(Forge.Projects.bom_budget()) :: String.t()
-  def budget_label(%{items: items, total: total, spent: spent}) do
-    remaining = Decimal.sub(total, spent)
-    "#{length(items)} items · #{money(spent)}/#{money(total)} spent · #{money(remaining)} left"
+  def budget_label(%{items: items, spent: spent}) do
+    count = length(items)
+    "#{count} #{if count == 1, do: "item", else: "items"} · #{money(spent)} total"
   end
 end

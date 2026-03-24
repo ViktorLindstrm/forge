@@ -166,6 +166,12 @@ defmodule ForgeWeb.ProjectLive.Show do
               <span class="text-sm font-semibold text-gray-900 dark:text-white">
                 {budget_display(@project.budget)}
               </span>
+              <span
+                :if={@bom_budget.items != []}
+                class="text-xs text-gray-400 dark:text-gray-500"
+              >
+                {Components.Formatting.money(@bom_budget.spent)} spent
+              </span>
               <button
                 type="button"
                 phx-click="budget_edit"

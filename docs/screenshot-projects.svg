@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#0ea5a4" />
+      <stop offset="1" stop-color="#7c3aed" />
+    </linearGradient>
+    <style>
+      .title { font: 700 28px/1.2 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; fill: white }
+      .subtitle { font: 600 14px/1.2 'Inter'; fill: white; opacity: 0.9 }
+      .card-title { font: 600 18px 'Inter'; fill: #111827 }
+      .card-body { font: 400 14px 'Inter'; fill: #6b7280 }
+      .badge { font: 700 12px 'Inter'; fill: white }
+    </style>
+  </defs>
+
+  <rect width="1200" height="600" rx="12" fill="#0f172a" />
+  <rect x="24" y="24" width="1152" height="120" rx="8" fill="url(#g)" />
+  <text x="60" y="72" class="title">Forge</text>
+  <text x="60" y="100" class="subtitle">Projects overview — quick, connected, and delightful</text>
+
+  <!-- stat cards -->
+  <g transform="translate(40,160)">
+    <rect width="1100" height="380" rx="10" fill="#ffffff" />
+
+    <!-- left column -->
+    <rect x="24" y="24" width="520" height="320" rx="8" fill="#f8fafc" />
+    <text x="48" y="60" class="card-title">Hardware</text>
+    <text x="48" y="92" class="card-body">Garden Weather Station — ESP32 · BME280 · VEML6075</text>
+
+    <!-- right column -->
+    <rect x="600" y="24" width="456" height="320" rx="8" fill="#f8fafc" />
+    <text x="624" y="60" class="card-title">Home & Workshop</text>
+    <text x="624" y="92" class="card-body">Home Assistant Dashboard · Energy Monitor</text>
+
+    <!-- task snippets -->
+    <g transform="translate(48,130)">
+      <rect width="440" height="60" rx="6" fill="#ffffff" stroke="#e6e9ef" />
+      <text x="16" y="36" class="card-title">Design IP65 enclosure</text>
+      <text x="16" y="52" class="card-body">In progress · High</text>
+    </g>
+
+    <g transform="translate(48,200)">
+      <rect width="440" height="60" rx="6" fill="#ffffff" stroke="#e6e9ef" />
+      <text x="16" y="36" class="card-title">Calibrate UV index sensor</text>
+      <text x="16" y="52" class="card-body">Upcoming · Medium</text>
+    </g>
+
+    <g transform="translate(624,130)">
+      <rect width="392" height="100" rx="6" fill="#ffffff" stroke="#e6e9ef" />
+      <text x="16" y="36" class="card-title">Energy Monitor Pipeline</text>
+      <text x="16" y="56" class="card-body">RS-485 · InfluxDB · Grafana</text>
+    </g>
+
+  </g>
+</svg>
