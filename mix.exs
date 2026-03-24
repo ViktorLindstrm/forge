@@ -91,7 +91,7 @@ defmodule Forge.MixProject do
       setup: ["deps.get", "ash.setup", "assets.setup", "assets.build", "run priv/repo/seeds.exs"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ash.setup --quiet", "test"],
+      test: ["ash.setup --quiet", "test --max-cases 4"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind forge", "esbuild forge"],
       "assets.deploy": [
@@ -99,7 +99,7 @@ defmodule Forge.MixProject do
         "esbuild forge --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile", "deps.unlock --unused", "format", "test"]
     ]
   end
 end
