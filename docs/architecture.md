@@ -65,5 +65,6 @@ erDiagram
   "Forge.Projects.BomItem" |o--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.JournalEntry" |o--o{ "Forge.Projects.Project" : ""
   "Forge.Projects.Task" }o--o| "Forge.Projects.Task" : ""
+  "Forge.Projects.Project" ||--o| "Forge.Projects.Task" : ""
 
 ```
