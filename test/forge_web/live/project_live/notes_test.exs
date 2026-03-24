@@ -77,8 +77,8 @@ defmodule ForgeWeb.ProjectLive.NotesTest do
         {:ok, result} = Notes.handle_note_create(params, project.id)
         form = Keyword.get(result.assigns, :note_form)
         assert %Phoenix.HTML.Form{} = form
-        assert form.params["body"] == ""
-        assert form.params["title"] == ""
+        assert %AshPhoenix.Form{} = form.source
+        assert form.source.resource == Forge.Projects.JournalEntry
       end
     end
 
@@ -117,7 +117,7 @@ defmodule ForgeWeb.ProjectLive.NotesTest do
 
         assert {:ok, result} = Notes.handle_note_delete(%{"id" => entry.id}, project.id)
         assert result.stream_delete == {:journal_entries, entry}
-        assert_raise Ecto.NoResultsError, fn -> Projects.get_journal_entry!(entry.id) end
+        assert_raise Ash.Error.Invalid, fn -> Projects.get_journal_entry!(entry.id) end
       end
     end
 
@@ -137,11 +137,12 @@ defmodule ForgeWeb.ProjectLive.NotesTest do
   end
 
   describe "note_form/0" do
-    test "returns a Phoenix.HTML.Form with blank defaults" do
+    test "returns a Phoenix.HTML.Form backed by AshPhoenix.Form" do
       form = Notes.note_form()
       assert %Phoenix.HTML.Form{} = form
-      assert form.params["body"] == ""
-      assert form.params["title"] == ""
+      assert %AshPhoenix.Form{} = form.source
+      assert form.source.resource == Forge.Projects.JournalEntry
+      assert form.name == "note"
     end
   end
 end

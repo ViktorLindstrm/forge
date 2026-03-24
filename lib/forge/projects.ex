@@ -1,10 +1,19 @@
 defmodule Forge.Projects do
   @moduledoc """
-  The Projects context. Manages personal projects and all sub-resources.
+  The Projects domain. Manages personal projects and all sub-resources.
   """
 
-  import Ecto.Query, warn: false
-  alias Forge.Repo
+  use Ash.Domain
+
+  require Ash.Query
+
+  resources do
+    resource Forge.Projects.Project
+    resource Forge.Projects.ProjectGroup
+    resource Forge.Projects.Task
+    resource Forge.Projects.BomItem
+    resource Forge.Projects.JournalEntry
+  end
 
   alias Forge.Projects.Project
   alias Forge.Projects.ProjectGroup
@@ -32,54 +41,47 @@ defmodule Forge.Projects do
 
   @spec list_project_groups() :: [ProjectGroup.t()]
   def list_project_groups do
-    ProjectGroup
-    |> order_by([g], asc: g.name)
-    |> Repo.all()
+    Ash.read!(ProjectGroup)
   end
 
   @spec get_project_group!(pos_integer()) :: ProjectGroup.t()
-  def get_project_group!(id), do: Repo.get!(ProjectGroup, id)
+  def get_project_group!(id), do: Ash.get!(ProjectGroup, id)
 
-  @spec create_project_group(map()) :: {:ok, ProjectGroup.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_project_group(map()) :: {:ok, ProjectGroup.t()} | {:error, Ash.Error.t()}
   def create_project_group(attrs \\ %{}) do
-    %ProjectGroup{}
-    |> ProjectGroup.changeset(attrs)
-    |> Repo.insert()
+    ProjectGroup
+    |> Ash.Changeset.for_create(:create, atomize(attrs))
+    |> Ash.create()
   end
 
   @spec update_project_group(ProjectGroup.t(), map()) ::
-          {:ok, ProjectGroup.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, ProjectGroup.t()} | {:error, Ash.Error.t()}
   def update_project_group(%ProjectGroup{} = group, attrs) do
     group
-    |> ProjectGroup.changeset(attrs)
-    |> Repo.update()
+    |> Ash.Changeset.for_update(:update, atomize(attrs))
+    |> Ash.update()
   end
 
   @spec delete_project_group(ProjectGroup.t()) ::
-          {:ok, ProjectGroup.t()} | {:error, Ecto.Changeset.t()}
-  def delete_project_group(%ProjectGroup{} = group), do: Repo.delete(group)
+          {:ok, ProjectGroup.t()} | {:error, Ash.Error.t()}
+  def delete_project_group(%ProjectGroup{} = group) do
+    case Ash.destroy(group, return_destroyed?: true) do
+      :ok -> {:ok, group}
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
+    end
+  end
 
-  @spec change_project_group(ProjectGroup.t(), map()) :: Ecto.Changeset.t()
+  @spec change_project_group(ProjectGroup.t(), map()) :: AshPhoenix.Form.t()
   def change_project_group(%ProjectGroup{} = group, attrs \\ %{}) do
-    ProjectGroup.changeset(group, attrs)
+    AshPhoenix.Form.for_update(group, :update, params: stringify(attrs), domain: __MODULE__)
   end
 
   # ── Projects ──────────────────────────────────────────────────────────────
 
   @spec list_projects() :: [Project.t()]
   def list_projects do
-    Project
-    |> order_by([p], [
-      fragment(
-        "CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END",
-        ^to_string(:active),
-        ^to_string(:idea),
-        ^to_string(:paused),
-        ^to_string(:done)
-      ),
-      asc: p.name
-    ])
-    |> Repo.all()
+    Ash.read!(Project)
     |> preload_pinned_tasks()
   end
 
@@ -88,28 +90,13 @@ defmodule Forge.Projects do
   @spec list_projects_grouped() :: grouped_projects()
   def list_projects_grouped do
     groups = list_project_groups()
-
-    projects =
-      Project
-      |> order_by([p], [
-        fragment(
-          "CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END",
-          ^to_string(:active),
-          ^to_string(:idea),
-          ^to_string(:paused),
-          ^to_string(:done)
-        ),
-        asc: p.name
-      ])
-      |> Repo.all()
-      |> preload_pinned_tasks()
+    projects = Ash.read!(Project) |> preload_pinned_tasks()
 
     by_group = Enum.group_by(projects, & &1.project_group_id)
 
     grouped =
       Enum.flat_map(groups, fn group ->
-        group_projects = Map.get(by_group, group.id, [])
-        [{group, group_projects}]
+        [{group, Map.get(by_group, group.id, [])}]
       end)
 
     ungrouped = Map.get(by_group, nil, [])
@@ -124,46 +111,52 @@ defmodule Forge.Projects do
   @spec list_projects_by_status(project_status()) :: [Project.t()]
   def list_projects_by_status(status) do
     Project
-    |> where([p], p.status == ^status)
-    |> order_by([p], asc: p.name)
-    |> Repo.all()
+    |> Ash.Query.filter(status == ^status)
+    |> Ash.read!()
     |> preload_pinned_tasks()
   end
 
   @spec get_project!(project_id()) :: Project.t()
-  def get_project!(id), do: Repo.get!(Project, id)
+  def get_project!(id), do: Ash.get!(Project, id)
 
-  @spec create_project(map()) :: {:ok, Project.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_project(map()) :: {:ok, Project.t()} | {:error, Ash.Error.t()}
   def create_project(attrs \\ %{}) do
-    %Project{}
-    |> Project.changeset(attrs)
-    |> Repo.insert()
+    Project
+    |> Ash.Changeset.for_create(:create, atomize(attrs))
+    |> Ash.create()
   end
 
-  @spec update_project(Project.t(), map()) :: {:ok, Project.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_project(Project.t(), map()) :: {:ok, Project.t()} | {:error, Ash.Error.t()}
   def update_project(%Project{} = project, attrs) do
     project
-    |> Project.changeset(attrs)
-    |> Repo.update()
+    |> Ash.Changeset.for_update(:update, atomize(attrs))
+    |> Ash.update()
   end
 
-  @spec delete_project(Project.t()) :: {:ok, Project.t()} | {:error, Ecto.Changeset.t()}
+  @spec delete_project(Project.t()) :: {:ok, Project.t()} | {:error, Ash.Error.t()}
   def delete_project(%Project{} = project) do
-    Repo.delete(project)
+    case Ash.destroy(project, return_destroyed?: true) do
+      :ok -> {:ok, project}
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
+    end
   end
 
-  @spec change_project(Project.t(), map()) :: Ecto.Changeset.t()
+  @spec change_project(Project.t(), map()) :: Phoenix.HTML.Form.t()
   def change_project(%Project{} = project, attrs \\ %{}) do
-    Project.changeset(project, attrs)
+    AshPhoenix.Form.for_update(project, :update,
+      params: stringify(attrs),
+      domain: __MODULE__,
+      as: "project"
+    )
+    |> Phoenix.Component.to_form()
   end
 
   @spec count_by_status() :: status_counts()
   def count_by_status do
-    Project
-    |> group_by([p], p.status)
-    |> select([p], {p.status, count(p.id)})
-    |> Repo.all()
-    |> Map.new()
+    Ash.read!(Project)
+    |> Enum.group_by(& &1.status)
+    |> Map.new(fn {status, projects} -> {status, length(projects)} end)
   end
 
   @spec preload_pinned_tasks([Project.t()]) :: [Project.t()]
@@ -171,21 +164,19 @@ defmodule Forge.Projects do
     project_ids = Enum.map(projects, & &1.id)
 
     if project_ids == [] do
-      Enum.map(projects, &%{&1 | pinned_tasks: %{current: nil, upcoming: nil}})
+      Enum.map(projects, &Map.put(&1, :pinned_tasks, %{current: nil, upcoming: nil}))
     else
       pinned_tasks =
         Task
-        |> where([t], t.project_id in ^project_ids and t.pin_status in ^[:current, :upcoming])
-        |> Repo.all()
+        |> Ash.Query.filter(project_id in ^project_ids and pin_status in [:current, :upcoming])
+        |> Ash.read!(authorize?: false)
         |> Enum.group_by(& &1.project_id)
 
       Enum.map(projects, fn project ->
         tasks = Map.get(pinned_tasks, project.id, [])
-
         current = Enum.find(tasks, &(&1.pin_status == :current))
         upcoming = Enum.find(tasks, &(&1.pin_status == :upcoming))
-
-        %{project | pinned_tasks: %{current: current, upcoming: upcoming}}
+        Map.put(project, :pinned_tasks, %{current: current, upcoming: upcoming})
       end)
     end
   end
@@ -195,19 +186,8 @@ defmodule Forge.Projects do
   @spec list_tasks(project_id()) :: [Task.t()]
   def list_tasks(project_id) do
     Task
-    |> where([t], t.project_id == ^project_id)
-    |> order_by([t],
-      asc:
-        fragment(
-          "CASE ? WHEN ? THEN 0 WHEN ? THEN 1 ELSE 2 END",
-          t.pin_status,
-          ^to_string(:current),
-          ^to_string(:upcoming)
-        ),
-      asc: t.sort_order,
-      asc: t.inserted_at
-    )
-    |> Repo.all()
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.read!()
   end
 
   @spec list_tasks_with_subtasks(project_id()) :: [Task.t()]
@@ -223,18 +203,14 @@ defmodule Forge.Projects do
     |> Enum.filter(&is_nil(&1.parent_task_id))
     |> Enum.flat_map(fn task ->
       children = Map.get(subtasks_by_parent, task.id, [])
-      [%{task | subtasks: children} | Enum.map(children, &%{&1 | subtasks: []})]
+      [Map.put(task, :subtasks, children) | Enum.map(children, &Map.put(&1, :subtasks, []))]
     end)
   end
 
   @spec list_tasks_tree(project_id()) :: [{Task.t(), [Task.t()]}]
   def list_tasks_tree(project_id) do
     tasks = list_tasks(project_id)
-
-    groups =
-      tasks
-      |> Enum.group_by(& &1.parent_task_id)
-
+    groups = Enum.group_by(tasks, & &1.parent_task_id)
     parents = Map.get(groups, nil, [])
 
     Enum.map(parents, fn parent ->
@@ -245,12 +221,12 @@ defmodule Forge.Projects do
   @spec list_subtasks(task_id()) :: [Task.t()]
   def list_subtasks(task_id) do
     Task
-    |> where([t], t.parent_task_id == type(^task_id, :binary_id))
-    |> order_by([t], asc: t.sort_order, asc: t.inserted_at)
-    |> Repo.all()
+    |> Ash.Query.filter(parent_task_id == ^task_id)
+    |> Ash.Query.sort(sort_order: :asc, inserted_at: :asc)
+    |> Ash.read!()
   end
 
-  @spec toggle_task_done(task_id() | Task.t()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
+  @spec toggle_task_done(task_id() | Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def toggle_task_done(id) when is_binary(id) do
     id
     |> get_task!()
@@ -258,228 +234,96 @@ defmodule Forge.Projects do
   end
 
   def toggle_task_done(%Task{} = task) do
-    set_task_done(task, task.status != :done)
-  end
-
-  @spec set_task_done(Task.t(), boolean()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
-  def set_task_done(%Task{} = task, done?) when is_boolean(done?) do
-    new_status = if done?, do: :done, else: :todo
-
-    Repo.transaction(fn ->
-      case update_task(task, %{status: new_status}) do
-        {:ok, updated_task} ->
-          if updated_task.parent_task_id == nil do
-            cascade_task_status(updated_task, new_status)
-          end
-
-          update_task_ancestors(updated_task)
-
-          get_task!(updated_task.id)
-
-        {:error, changeset} ->
-          Repo.rollback(changeset)
-      end
-    end)
-    |> case do
-      {:ok, updated} ->
-        {:ok, updated}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
-
-      {:error, reason} ->
-        {:error, Ecto.Changeset.add_error(Ecto.Changeset.change(task), :base, inspect(reason))}
-    end
-  end
-
-  defp cascade_task_status(%Task{} = task, status) when status in [:done, :todo] do
-    task_id = task.id
-
-    Repo.update_all(from(t in Task, where: t.parent_task_id == type(^task_id, :binary_id)),
-      set: [status: status, pin_status: nil]
-    )
-
-    subtasks = list_subtasks(task_id)
-    Enum.each(subtasks, &cascade_task_status(&1, status))
-  end
-
-  defp update_task_ancestors(%Task{} = task) do
-    case task.parent_task_id do
-      nil ->
-        :ok
-
-      parent_id ->
-        parent = get_task!(parent_id)
-        children = list_subtasks(parent.id)
-        all_done? = children != [] and Enum.all?(children, &(&1.status == :done))
-        desired = if all_done?, do: :done, else: :todo
-
-        if parent.status != desired do
-          case update_task(parent, %{status: desired, pin_status: nil}) do
-            {:ok, updated_parent} ->
-              update_task_ancestors(updated_parent)
-
-            {:error, changeset} ->
-              Repo.rollback(changeset)
-          end
-        else
-          :ok
-        end
-    end
+    task
+    |> Ash.Changeset.for_update(:toggle_done, %{})
+    |> Ash.update()
   end
 
   @spec pin_task(task_id(), :current | :upcoming) ::
-          {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, Task.t()} | {:error, Ash.Error.t()}
   def pin_task(id, pin_status) when pin_status in [:current, :upcoming] do
-    task = get_task!(id)
-
-    case task.status do
-      :done ->
-        {:error,
-         Ecto.Changeset.change(task)
-         |> Ecto.Changeset.add_error(:pin_status, "cannot pin a done task")}
-
-      _ ->
-        update_task(task, %{pin_status: pin_status})
-    end
+    get_task!(id)
+    |> Ash.Changeset.for_update(:pin, %{pin_status: pin_status})
+    |> Ash.update()
   end
 
-  @spec unpin_task(task_id()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
+  @spec unpin_task(task_id()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def unpin_task(id) do
-    task = get_task!(id)
-    update_task(task, %{pin_status: nil})
+    get_task!(id)
+    |> Ash.Changeset.for_update(:unpin, %{})
+    |> Ash.update()
   end
 
   @spec get_task!(task_id()) :: Task.t()
-  def get_task!(id), do: Repo.get!(Task, id)
+  def get_task!(id), do: Ash.get!(Task, id)
 
-  @spec create_task(map()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_task(map()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def create_task(attrs) do
-    attrs = maybe_put_next_task_sort_order(attrs)
-    attrs = maybe_clear_pin_status_for_done(attrs)
-
-    %Task{}
-    |> Task.changeset(attrs)
-    |> Repo.insert()
+    Task
+    |> Ash.Changeset.for_create(:create, atomize(attrs))
+    |> Ash.create()
   end
 
-  @spec maybe_put_next_task_sort_order(map()) :: map()
-  defp maybe_put_next_task_sort_order(%{"project_id" => project_id} = attrs) do
-    max_order =
-      Task
-      |> where([t], t.project_id == ^project_id)
-      |> select([t], max(t.sort_order))
-      |> Repo.one()
-
-    next = (max_order || 0) + 1
-    Map.put(attrs, "sort_order", next)
-  end
-
-  defp maybe_put_next_task_sort_order(attrs), do: attrs
-
-  @spec maybe_clear_pin_status_for_done(map()) :: map()
-  defp maybe_clear_pin_status_for_done(%{"status" => "done"} = attrs),
-    do: Map.put(attrs, "pin_status", nil)
-
-  defp maybe_clear_pin_status_for_done(%{"status" => :done} = attrs),
-    do: Map.put(attrs, "pin_status", nil)
-
-  defp maybe_clear_pin_status_for_done(%{status: :done} = attrs),
-    do: Map.put(attrs, :pin_status, nil)
-
-  defp maybe_clear_pin_status_for_done(attrs), do: attrs
-
-  @spec unpin_other_tasks(project_id(), String.t() | atom(), task_id()) ::
-          {non_neg_integer(), nil | [term()]}
-  defp unpin_other_tasks(project_id, pin_status, keep_task_id) do
-    pin_status = if is_atom(pin_status), do: to_string(pin_status), else: pin_status
-
-    Repo.update_all(
-      from(t in Task,
-        where:
-          t.project_id == ^project_id and t.pin_status == ^pin_status and t.id != ^keep_task_id
-      ),
-      set: [pin_status: nil]
-    )
-  end
-
-  @spec update_task(Task.t(), map()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_task(Task.t(), map()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def update_task(%Task{} = task, attrs) do
-    attrs = maybe_clear_pin_status_for_done(attrs)
-    project_id = task.project_id
+    task
+    |> Ash.Changeset.for_update(:update, atomize(attrs))
+    |> Ash.update()
+  end
 
-    Repo.transaction(fn ->
-      if Map.get(attrs, :pin_status) in [:current, :upcoming] or
-           Map.get(attrs, "pin_status") in ["current", "upcoming"] do
-        pin_status = Map.get(attrs, :pin_status) || Map.get(attrs, "pin_status")
-        unpin_other_tasks(project_id, pin_status, task.id)
-      end
-
-      task
-      |> Task.changeset(attrs)
-      |> Repo.update()
-    end)
-    |> case do
-      {:ok, {:ok, updated_task}} ->
-        {:ok, updated_task}
-
-      {:ok, {:error, changeset}} ->
-        {:error, changeset}
-
-      {:error, reason} ->
-        {:error, Ecto.Changeset.change(task) |> Ecto.Changeset.add_error(:base, inspect(reason))}
+  @spec delete_task(Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
+  def delete_task(%Task{} = task) do
+    case Ash.destroy(task, return_destroyed?: true) do
+      :ok -> {:ok, task}
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
     end
   end
 
-  @spec delete_task(Task.t()) :: {:ok, Task.t()} | {:error, Ecto.Changeset.t()}
-  def delete_task(%Task{} = task), do: Repo.delete(task)
-
-  @spec change_task(Task.t(), map()) :: Ecto.Changeset.t()
+  @spec change_task(Task.t(), map()) :: Phoenix.HTML.Form.t()
   def change_task(%Task{} = task, attrs \\ %{}) do
-    Task.changeset(task, attrs)
+    AshPhoenix.Form.for_update(task, :update,
+      params: stringify(attrs),
+      domain: __MODULE__,
+      as: "task"
+    )
+    |> Phoenix.Component.to_form()
   end
 
   @spec task_stats(project_id()) :: task_stats()
   def task_stats(project_id) do
     Task
-    |> where([t], t.project_id == ^project_id)
-    |> group_by([t], t.status)
-    |> select([t], {t.status, count(t.id)})
-    |> Repo.all()
-    |> Map.new()
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.read!()
+    |> Enum.group_by(& &1.status)
+    |> Map.new(fn {status, tasks} -> {status, length(tasks)} end)
   end
 
   @spec reorder_tasks(project_id(), [Ecto.UUID.t()]) :: :ok
-  def reorder_tasks(project_id, ordered_ids) when is_list(ordered_ids) do
-    Repo.transaction(fn ->
-      ordered_ids
-      |> Enum.with_index(1)
-      |> Enum.each(fn {id, sort_order} ->
-        Repo.update_all(
-          from(t in Task, where: t.project_id == ^project_id and t.id == ^id),
-          set: [sort_order: sort_order]
-        )
-      end)
+  def reorder_tasks(_project_id, ordered_ids) when is_list(ordered_ids) do
+    ordered_ids
+    |> Enum.with_index(1)
+    |> Enum.each(fn {id, sort_order} ->
+      task = Ash.get!(Task, id)
+
+      task
+      |> Ash.Changeset.for_update(:reorder, %{sort_order: sort_order})
+      |> Ash.update!(authorize?: false)
     end)
 
     :ok
   end
 
   @spec reorder_subtasks(Ecto.UUID.t(), [Ecto.UUID.t()]) :: :ok
-  def reorder_subtasks(parent_task_id, ordered_ids) when is_list(ordered_ids) do
-    Repo.transaction(fn ->
-      ordered_ids
-      |> Enum.with_index(1)
-      |> Enum.each(fn {id, sort_order} ->
-        Repo.update_all(
-          from(t in Task,
-            where:
-              t.parent_task_id == type(^parent_task_id, :binary_id) and
-                t.id == type(^id, :binary_id)
-          ),
-          set: [sort_order: sort_order]
-        )
-      end)
+  def reorder_subtasks(_parent_task_id, ordered_ids) when is_list(ordered_ids) do
+    ordered_ids
+    |> Enum.with_index(1)
+    |> Enum.each(fn {id, sort_order} ->
+      task = Ash.get!(Task, id)
+
+      task
+      |> Ash.Changeset.for_update(:reorder, %{sort_order: sort_order})
+      |> Ash.update!(authorize?: false)
     end)
 
     :ok
@@ -490,54 +334,59 @@ defmodule Forge.Projects do
   @spec list_bom_items(project_id()) :: [BomItem.t()]
   def list_bom_items(project_id) do
     BomItem
-    |> where([b], b.project_id == ^project_id)
-    |> order_by([b], asc: b.sort_order, asc: b.inserted_at)
-    |> Repo.all()
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.read!()
   end
 
   @spec get_bom_item!(bom_item_id()) :: BomItem.t()
-  def get_bom_item!(id), do: Repo.get!(BomItem, id)
+  def get_bom_item!(id), do: Ash.get!(BomItem, id)
 
-  @spec create_bom_item(map()) :: {:ok, BomItem.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_bom_item(map()) :: {:ok, BomItem.t()} | {:error, Ash.Error.t()}
   def create_bom_item(attrs) do
-    %BomItem{}
-    |> BomItem.changeset(attrs)
-    |> Repo.insert()
+    BomItem
+    |> Ash.Changeset.for_create(:create, atomize(attrs))
+    |> Ash.create()
   end
 
-  @spec update_bom_item(BomItem.t(), map()) :: {:ok, BomItem.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_bom_item(BomItem.t(), map()) :: {:ok, BomItem.t()} | {:error, Ash.Error.t()}
   def update_bom_item(%BomItem{} = item, attrs) do
     item
-    |> BomItem.changeset(attrs)
-    |> Repo.update()
+    |> Ash.Changeset.for_update(:update, atomize(attrs))
+    |> Ash.update()
   end
 
-  @spec delete_bom_item(BomItem.t()) :: {:ok, BomItem.t()} | {:error, Ecto.Changeset.t()}
-  def delete_bom_item(%BomItem{} = item), do: Repo.delete(item)
+  @spec delete_bom_item(BomItem.t()) :: {:ok, BomItem.t()} | {:error, Ash.Error.t()}
+  def delete_bom_item(%BomItem{} = item) do
+    case Ash.destroy(item, return_destroyed?: true) do
+      :ok -> {:ok, item}
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
+    end
+  end
 
-  @spec change_bom_item(BomItem.t(), map()) :: Ecto.Changeset.t()
+  @spec change_bom_item(BomItem.t(), map()) :: AshPhoenix.Form.t()
   def change_bom_item(%BomItem{} = item, attrs \\ %{}) do
-    BomItem.changeset(item, attrs)
+    AshPhoenix.Form.for_update(item, :update, params: stringify(attrs), domain: __MODULE__)
   end
 
   @spec bom_budget(project_id()) :: bom_budget()
   def bom_budget(project_id) do
-    items = list_bom_items(project_id)
+    items =
+      BomItem
+      |> Ash.Query.filter(project_id == ^project_id)
+      |> Ash.Query.load([:total_price])
+      |> Ash.read!()
 
     total =
       Enum.reduce(items, Decimal.new(0), fn item, acc ->
-        price = item.unit_price || Decimal.new(0)
-        qty = Decimal.new(item.quantity)
-        Decimal.add(acc, Decimal.mult(price, qty))
+        Decimal.add(acc, item.total_price || Decimal.new(0))
       end)
 
     spent =
       items
       |> Enum.filter(&(&1.status in [:ordered, :received]))
       |> Enum.reduce(Decimal.new(0), fn item, acc ->
-        price = item.unit_price || Decimal.new(0)
-        qty = Decimal.new(item.quantity)
-        Decimal.add(acc, Decimal.mult(price, qty))
+        Decimal.add(acc, item.total_price || Decimal.new(0))
       end)
 
     %{total: total, spent: spent, items: items}
@@ -548,72 +397,76 @@ defmodule Forge.Projects do
   @spec list_journal_entries(project_id()) :: [JournalEntry.t()]
   def list_journal_entries(project_id) do
     JournalEntry
-    |> where([j], j.project_id == ^project_id)
-    |> order_by([j], desc: j.sort_order, desc: j.inserted_at)
-    |> Repo.all()
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.read!()
   end
 
   @spec list_journal_entries_page(project_id(), pos_integer(), pos_integer()) ::
           [JournalEntry.t()]
   def list_journal_entries_page(project_id, page, per_page) do
-    offset = (page - 1) * per_page
-
     JournalEntry
-    |> where([j], j.project_id == ^project_id)
-    |> order_by([j], desc: j.sort_order, desc: j.inserted_at)
-    |> limit(^per_page)
-    |> offset(^offset)
-    |> Repo.all()
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.Query.limit(per_page)
+    |> Ash.Query.offset((page - 1) * per_page)
+    |> Ash.read!()
   end
 
   @spec count_journal_entries(project_id()) :: non_neg_integer()
   def count_journal_entries(project_id) do
     JournalEntry
-    |> where([j], j.project_id == ^project_id)
-    |> Repo.aggregate(:count)
+    |> Ash.Query.filter(project_id == ^project_id)
+    |> Ash.count!()
   end
 
   @spec get_journal_entry!(journal_entry_id()) :: JournalEntry.t()
-  def get_journal_entry!(id), do: Repo.get!(JournalEntry, id)
+  def get_journal_entry!(id), do: Ash.get!(JournalEntry, id)
 
   @spec create_journal_entry(map()) ::
-          {:ok, JournalEntry.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
   def create_journal_entry(attrs) do
-    attrs = maybe_put_next_journal_sort_order(attrs)
-
-    %JournalEntry{}
-    |> JournalEntry.changeset(attrs)
-    |> Repo.insert()
+    JournalEntry
+    |> Ash.Changeset.for_create(:create, atomize(attrs))
+    |> Ash.create()
   end
-
-  @spec maybe_put_next_journal_sort_order(map()) :: map()
-  defp maybe_put_next_journal_sort_order(%{"project_id" => project_id} = attrs) do
-    max_order =
-      JournalEntry
-      |> where([j], j.project_id == ^project_id)
-      |> select([j], max(j.sort_order))
-      |> Repo.one()
-
-    next = (max_order || 0) + 1
-    Map.put(attrs, "sort_order", next)
-  end
-
-  defp maybe_put_next_journal_sort_order(attrs), do: attrs
 
   @spec update_journal_entry(JournalEntry.t(), map()) ::
-          {:ok, JournalEntry.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
   def update_journal_entry(%JournalEntry{} = entry, attrs) do
     entry
-    |> JournalEntry.changeset(attrs)
-    |> Repo.update()
+    |> Ash.Changeset.for_update(:update, atomize(attrs))
+    |> Ash.update()
   end
 
   @spec delete_journal_entry(JournalEntry.t()) ::
-          {:ok, JournalEntry.t()} | {:error, Ecto.Changeset.t()}
-  def delete_journal_entry(%JournalEntry{} = entry), do: Repo.delete(entry)
+          {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
+  def delete_journal_entry(%JournalEntry{} = entry) do
+    case Ash.destroy(entry, return_destroyed?: true) do
+      :ok -> {:ok, entry}
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
+    end
+  end
 
-  @spec change_journal_entry(JournalEntry.t(), map()) :: Ecto.Changeset.t()
+  @spec change_journal_entry(JournalEntry.t(), map()) :: AshPhoenix.Form.t()
   def change_journal_entry(%JournalEntry{} = entry, attrs \\ %{}) do
-    JournalEntry.changeset(entry, attrs)
+    AshPhoenix.Form.for_update(entry, :update, params: stringify(attrs), domain: __MODULE__)
+  end
+
+  # ── Helpers ───────────────────────────────────────────────────────────────
+
+  @spec atomize(map()) :: map()
+  defp atomize(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_binary(k) -> {String.to_existing_atom(k), v}
+      {k, v} -> {k, v}
+    end)
+  end
+
+  @spec stringify(map()) :: map()
+  defp stringify(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_atom(k) -> {to_string(k), v}
+      {k, v} -> {k, v}
+    end)
   end
 end

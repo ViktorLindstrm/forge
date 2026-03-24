@@ -1,13 +1,172 @@
 defmodule Forge.Projects.Task do
-  use Ecto.Schema
-  import Ecto.Changeset
+  use Ash.Resource,
+    domain: Forge.Projects,
+    data_layer: AshPostgres.DataLayer
 
   @statuses [:todo, :in_progress, :done, :blocked]
   @priorities [:low, :medium, :high]
 
+  postgres do
+    table "tasks"
+    repo Forge.Repo
+
+    references do
+      reference :project, on_delete: :delete
+      reference :parent_task, on_delete: :delete
+    end
+  end
+
+  resource do
+    description "A task belonging to a project"
+  end
+
+  actions do
+    defaults [:destroy]
+
+    read :read do
+      primary? true
+      prepare Forge.Projects.Preparations.SortTasksByPin
+    end
+
+    create :create do
+      accept [
+        :title,
+        :description,
+        :status,
+        :priority,
+        :pin_status,
+        :due_date,
+        :sort_order,
+        :project_id,
+        :parent_task_id
+      ]
+
+      change {Forge.Projects.Changes.SetNextSortOrder, filter_attribute: :project_id}
+      change Forge.Projects.Changes.ClearPinStatusIfDone
+    end
+
+    update :update do
+      accept [
+        :title,
+        :description,
+        :status,
+        :priority,
+        :pin_status,
+        :due_date,
+        :sort_order,
+        :parent_task_id
+      ]
+
+      require_atomic? false
+      change Forge.Projects.Changes.ClearPinStatusIfDone
+      change Forge.Projects.Changes.UnpinOtherTasks
+    end
+
+    update :toggle_done do
+      description "Toggles the task between :done and :todo, cascading to subtasks and ancestors"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        current_status = changeset.data.status
+        new_status = if current_status == :done, do: :todo, else: :done
+        Ash.Changeset.force_change_attribute(changeset, :status, new_status)
+      end
+
+      change Forge.Projects.Changes.ClearPinStatusIfDone
+      change Forge.Projects.Changes.CascadeTaskCompletion
+    end
+
+    update :pin do
+      description "Pins a task as :current or :upcoming (task must not be :done)"
+      accept [:pin_status]
+      require_atomic? false
+
+      validate Forge.Projects.Validations.TaskNotDone
+      change Forge.Projects.Changes.UnpinOtherTasks
+    end
+
+    update :unpin do
+      description "Removes the pin from a task"
+      accept []
+      require_atomic? false
+
+      change fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(changeset, :pin_status, nil)
+      end
+    end
+
+    update :reorder do
+      description "Updates the sort_order of a task"
+      accept [:sort_order]
+    end
+  end
+
+  attributes do
+    uuid_primary_key :id
+
+    attribute :title, :string do
+      public? true
+      allow_nil? false
+    end
+
+    attribute :description, :string, public?: true
+
+    attribute :status, :atom do
+      public? true
+      allow_nil? false
+      default :todo
+      constraints one_of: @statuses
+    end
+
+    attribute :priority, :atom do
+      public? true
+      allow_nil? false
+      default :medium
+      constraints one_of: @priorities
+    end
+
+    attribute :pin_status, :atom do
+      public? true
+      allow_nil? true
+      constraints one_of: [:current, :upcoming]
+    end
+
+    attribute :due_date, :date, public?: true
+
+    attribute :sort_order, :integer do
+      public? true
+      allow_nil? false
+      default 0
+    end
+
+    timestamps type: :utc_datetime
+  end
+
+  relationships do
+    belongs_to :project, Forge.Projects.Project do
+      public? true
+      allow_nil? false
+      attribute_type :integer
+    end
+
+    belongs_to :parent_task, Forge.Projects.Task do
+      public? true
+      allow_nil? true
+      attribute_type :uuid
+    end
+
+    has_many :subtasks, Forge.Projects.Task do
+      public? true
+      destination_attribute :parent_task_id
+    end
+  end
+
+  aggregates do
+    count :subtask_count, :subtasks
+  end
+
   @type status :: :todo | :in_progress | :done | :blocked
   @type priority :: :low | :medium | :high
-
   @type pin_status :: :current | :upcoming | nil
 
   @type t :: %__MODULE__{
@@ -20,53 +179,14 @@ defmodule Forge.Projects.Task do
           due_date: Date.t() | nil,
           sort_order: non_neg_integer(),
           parent_task_id: Ecto.UUID.t() | nil,
-          parent_task: t() | Ecto.Association.NotLoaded.t(),
-          subtasks: [t()] | Ecto.Association.NotLoaded.t(),
           project_id: pos_integer() | nil,
-          project: Forge.Projects.Project.t() | Ecto.Association.NotLoaded.t(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
-
-  @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :id
-
-  schema "tasks" do
-    field :title, :string
-    field :description, :string
-    field :status, Ecto.Enum, values: @statuses, default: :todo
-    field :priority, Ecto.Enum, values: @priorities, default: :medium
-    field :pin_status, Ecto.Enum, values: [:current, :upcoming]
-    field :due_date, :date
-    field :sort_order, :integer, default: 0
-    belongs_to :parent_task, __MODULE__, foreign_key: :parent_task_id, type: :binary_id
-    belongs_to :project, Forge.Projects.Project
-    has_many :subtasks, __MODULE__, foreign_key: :parent_task_id, references: :id
-
-    timestamps(type: :utc_datetime)
-  end
 
   @spec statuses() :: [status(), ...]
   def statuses, do: @statuses
 
   @spec priorities() :: [priority(), ...]
   def priorities, do: @priorities
-
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
-  def changeset(task, attrs) do
-    task
-    |> cast(attrs, [
-      :title,
-      :description,
-      :status,
-      :priority,
-      :pin_status,
-      :due_date,
-      :sort_order,
-      :parent_task_id,
-      :project_id
-    ])
-    |> validate_required([:title, :project_id])
-    |> validate_number(:sort_order, greater_than_or_equal_to: 0)
-  end
 end

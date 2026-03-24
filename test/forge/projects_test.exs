@@ -35,9 +35,9 @@ defmodule Forge.ProjectsTest do
       end
     end
 
-    property "returns error changeset for missing name" do
+    property "returns error for missing name" do
       check all(status <- status_generator()) do
-        assert {:error, %Ecto.Changeset{}} =
+        assert {:error, %Ash.Error.Invalid{}} =
                  Projects.create_project(%{"status" => to_string(status)})
       end
     end
@@ -102,7 +102,7 @@ defmodule Forge.ProjectsTest do
     property "returns error changeset when clearing name" do
       check all(name <- project_name_generator()) do
         {:ok, project} = Projects.create_project(%{"name" => name})
-        assert {:error, %Ecto.Changeset{}} = Projects.update_project(project, %{"name" => nil})
+        assert {:error, %Ash.Error.Invalid{}} = Projects.update_project(project, %{"name" => nil})
       end
     end
   end
@@ -312,7 +312,7 @@ defmodule Forge.ProjectsTest do
             "status" => "done"
           })
 
-        assert {:error, %Ecto.Changeset{}} = Projects.pin_task(task.id, :current)
+        assert {:error, %Ash.Error.Invalid{}} = Projects.pin_task(task.id, :current)
       end
     end
   end

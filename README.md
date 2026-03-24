@@ -38,6 +38,12 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 
 ---
 
+## 🏗️ Architecture
+
+The domain model is built on [Ash Framework](https://ash-hq.org/) resources. An auto-generated entity-relationship diagram is kept up to date in [`docs/architecture.md`](docs/architecture.md).
+
+---
+
 ## 🛠 Tech stack
 
 | | Layer | Technology |

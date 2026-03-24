@@ -14,25 +14,18 @@ defmodule Forge.Projects.BomItemTest do
     positive_integer()
   end
 
-  defp valid_attrs_generator do
-    gen all(
-          name <- name_generator(),
-          quantity <- positive_quantity_generator(),
-          status <- one_of(Enum.map(@statuses, &constant/1))
-        ) do
-      %{
-        "name" => name,
-        "quantity" => quantity,
-        "status" => to_string(status),
-        "project_id" => 1
-      }
-    end
+  defp changeset(attrs) do
+    Ash.Changeset.for_create(BomItem, :create, attrs)
   end
 
-  describe "changeset/2 with valid data" do
+  describe "for_create/3 with valid data" do
     property "accepts valid name, quantity and project_id" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = BomItem.changeset(%BomItem{}, attrs)
+      check all(
+              name <- name_generator(),
+              quantity <- positive_quantity_generator(),
+              status <- one_of(Enum.map(@statuses, &constant/1))
+            ) do
+        cs = changeset(%{name: name, quantity: quantity, status: status, project_id: 1})
         assert cs.valid?
       end
     end
@@ -42,32 +35,19 @@ defmodule Forge.Projects.BomItemTest do
               status <- one_of(Enum.map(@statuses, &constant/1)),
               name <- name_generator()
             ) do
-        cs =
-          BomItem.changeset(%BomItem{}, %{
-            "name" => name,
-            "project_id" => 1,
-            "status" => to_string(status)
-          })
-
+        cs = changeset(%{name: name, project_id: 1, status: status})
         assert cs.valid?
       end
     end
 
-    property "accepts positive unit_price as string decimal" do
+    property "accepts positive unit_price as decimal" do
       check all(
               whole <- non_negative_integer(),
               frac <- integer(0..99),
               name <- name_generator()
             ) do
-        price_str = "#{whole}.#{String.pad_leading(to_string(frac), 2, "0")}"
-
-        cs =
-          BomItem.changeset(%BomItem{}, %{
-            "name" => name,
-            "project_id" => 1,
-            "unit_price" => price_str
-          })
-
+        price = Decimal.new("#{whole}.#{String.pad_leading(to_string(frac), 2, "0")}")
+        cs = changeset(%{name: name, project_id: 1, unit_price: price})
         assert cs.valid?
       end
     end
@@ -78,13 +58,13 @@ defmodule Forge.Projects.BomItemTest do
               extra <- string(:printable, min_length: 0, max_length: 100)
             ) do
         cs =
-          BomItem.changeset(%BomItem{}, %{
-            "name" => name,
-            "project_id" => 1,
-            "unit" => extra,
-            "supplier" => extra,
-            "link" => extra,
-            "notes" => extra
+          changeset(%{
+            name: name,
+            project_id: 1,
+            unit: extra,
+            supplier: extra,
+            link: extra,
+            notes: extra
           })
 
         assert cs.valid?
@@ -96,48 +76,42 @@ defmodule Forge.Projects.BomItemTest do
               sort_order <- non_negative_integer(),
               name <- name_generator()
             ) do
-        cs =
-          BomItem.changeset(%BomItem{}, %{
-            "name" => name,
-            "project_id" => 1,
-            "sort_order" => sort_order
-          })
-
+        cs = changeset(%{name: name, project_id: 1, sort_order: sort_order})
         assert cs.valid?
       end
     end
   end
 
-  describe "changeset/2 with invalid data" do
+  describe "for_create/3 with invalid data" do
     property "rejects missing name" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = BomItem.changeset(%BomItem{}, Map.delete(attrs, "name"))
+      check all(quantity <- positive_quantity_generator()) do
+        cs = changeset(%{quantity: quantity, project_id: 1})
         refute cs.valid?
-        assert :name in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :name end)
       end
     end
 
     property "rejects nil name" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = BomItem.changeset(%BomItem{}, Map.put(attrs, "name", nil))
+      check all(quantity <- positive_quantity_generator()) do
+        cs = changeset(%{name: nil, quantity: quantity, project_id: 1})
         refute cs.valid?
-        assert :name in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :name end)
       end
     end
 
     property "rejects missing project_id" do
       check all(name <- name_generator()) do
-        cs = BomItem.changeset(%BomItem{}, %{"name" => name})
+        cs = changeset(%{name: name})
         refute cs.valid?
-        assert :project_id in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :project_id end)
       end
     end
 
     property "rejects quantity of zero" do
       check all(name <- name_generator()) do
-        cs = BomItem.changeset(%BomItem{}, %{"name" => name, "project_id" => 1, "quantity" => 0})
+        cs = changeset(%{name: name, project_id: 1, quantity: 0})
         refute cs.valid?
-        assert :quantity in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :quantity end)
       end
     end
 
@@ -146,15 +120,9 @@ defmodule Forge.Projects.BomItemTest do
               quantity <- map(positive_integer(), &(-&1)),
               name <- name_generator()
             ) do
-        cs =
-          BomItem.changeset(%BomItem{}, %{
-            "name" => name,
-            "project_id" => 1,
-            "quantity" => quantity
-          })
-
+        cs = changeset(%{name: name, project_id: 1, quantity: quantity})
         refute cs.valid?
-        assert :quantity in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :quantity end)
       end
     end
   end

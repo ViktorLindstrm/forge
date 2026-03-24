@@ -14,15 +14,13 @@ defmodule ForgeWeb.ProjectLive.Bom do
   @spec handle_bom_create(map(), project_id()) ::
           Result.ok(BomItem.t()) | Result.error_changeset()
   def handle_bom_create(params, project_id) do
-    params = sanitize_bom_params(params)
-
     case create_bom_item(Map.put(params, "project_id", project_id)) do
       {:ok, _item} ->
         {:ok,
          %{
            assigns: [
              bom_budget: bom_budget(project_id),
-             bom_form: Phoenix.Component.to_form(bom_params(), as: :bom)
+             bom_form: bom_form()
            ]
          }}
 
@@ -61,6 +59,16 @@ defmodule ForgeWeb.ProjectLive.Bom do
     end
   end
 
+  @spec bom_form() :: Phoenix.HTML.Form.t()
+  def bom_form do
+    AshPhoenix.Form.for_create(BomItem, :create,
+      domain: Projects,
+      as: "bom"
+    )
+    |> Phoenix.Component.to_form()
+  end
+
+  @deprecated "Use bom_form/0 instead"
   @spec bom_params() :: %{String.t() => String.t() | pos_integer()}
   def bom_params do
     %{
@@ -73,40 +81,5 @@ defmodule ForgeWeb.ProjectLive.Bom do
       "notes" => "",
       "status" => "needed"
     }
-  end
-
-  @spec sanitize_bom_params(map()) :: map()
-  defp sanitize_bom_params(params) do
-    params
-    |> Map.update("name", "", &String.trim/1)
-    |> Map.update("quantity", 1, fn
-      "" -> 1
-      v when is_binary(v) -> String.to_integer(v)
-      v -> v
-    end)
-    |> Map.update("unit_price", nil, fn
-      "" -> nil
-      v when is_binary(v) -> Decimal.new(v)
-      %Decimal{} = v -> v
-      v -> v
-    end)
-    |> Map.update("unit", nil, fn
-      "" -> nil
-      v -> v
-    end)
-    |> Map.update("supplier", nil, fn
-      "" -> nil
-      v -> v
-    end)
-    |> Map.update("link", nil, fn
-      "" -> nil
-      v -> v
-    end)
-    |> Map.update("notes", nil, fn
-      "" -> nil
-      v -> v
-    end)
-    |> Map.put_new("status", :needed)
-    |> Map.put_new("currency", "SEK")
   end
 end

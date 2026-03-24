@@ -18,20 +18,18 @@ defmodule Forge.Projects.ProjectTest do
     ])
   end
 
-  defp valid_attrs_generator do
-    gen all(
-          name <- name_generator(),
-          status <- one_of(Enum.map(@statuses, &constant/1)),
-          color <- one_of(Enum.map(@colors, &constant/1))
-        ) do
-      %{"name" => name, "status" => to_string(status), "color" => to_string(color)}
-    end
+  defp changeset(attrs) do
+    Ash.Changeset.for_create(Project, :create, attrs)
   end
 
-  describe "changeset/2 with valid data" do
+  describe "for_create/3 with valid data" do
     property "accepts any non-empty name up to 100 chars" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Project.changeset(%Project{}, attrs)
+      check all(
+              name <- name_generator(),
+              status <- one_of(Enum.map(@statuses, &constant/1)),
+              color <- one_of(Enum.map(@colors, &constant/1))
+            ) do
+        cs = changeset(%{name: name, status: status, color: color})
         assert cs.valid?
       end
     end
@@ -41,7 +39,7 @@ defmodule Forge.Projects.ProjectTest do
               status <- one_of(Enum.map(@statuses, &constant/1)),
               name <- name_generator()
             ) do
-        cs = Project.changeset(%Project{}, %{"name" => name, "status" => to_string(status)})
+        cs = changeset(%{name: name, status: status})
         assert cs.valid?
       end
     end
@@ -51,7 +49,7 @@ defmodule Forge.Projects.ProjectTest do
               color <- one_of(Enum.map(@colors, &constant/1)),
               name <- name_generator()
             ) do
-        cs = Project.changeset(%Project{}, %{"name" => name, "color" => to_string(color)})
+        cs = changeset(%{name: name, color: color})
         assert cs.valid?
       end
     end
@@ -61,34 +59,33 @@ defmodule Forge.Projects.ProjectTest do
               url <- valid_url_generator(),
               name <- name_generator()
             ) do
-        cs = Project.changeset(%Project{}, %{"name" => name, "url" => url})
+        cs = changeset(%{name: name, url: url})
         assert cs.valid?
-        assert is_nil(cs.errors[:url])
       end
     end
 
     property "accepts nil URL (optional field)" do
       check all(name <- name_generator()) do
-        cs = Project.changeset(%Project{}, %{"name" => name})
+        cs = changeset(%{name: name})
         assert cs.valid?
       end
     end
   end
 
-  describe "changeset/2 with invalid data" do
+  describe "for_create/3 with invalid data" do
     property "rejects missing name" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Project.changeset(%Project{}, Map.delete(attrs, "name"))
+      check all(status <- one_of(Enum.map(@statuses, &constant/1))) do
+        cs = changeset(%{status: status})
         refute cs.valid?
-        assert :name in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :name end)
       end
     end
 
     property "rejects nil name" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Project.changeset(%Project{}, Map.put(attrs, "name", nil))
+      check all(status <- one_of(Enum.map(@statuses, &constant/1))) do
+        cs = changeset(%{name: nil, status: status})
         refute cs.valid?
-        assert :name in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :name end)
       end
     end
 
@@ -99,9 +96,9 @@ defmodule Forge.Projects.ProjectTest do
             ) do
         name = base <> extra
         assert String.length(name) > 100
-        cs = Project.changeset(%Project{}, %{"name" => name})
+        cs = changeset(%{name: name})
         refute cs.valid?
-        assert :name in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :name end)
       end
     end
 
@@ -114,9 +111,9 @@ defmodule Forge.Projects.ProjectTest do
               name <- name_generator()
             ) do
         bad_url = prefix <> suffix
-        cs = Project.changeset(%Project{}, %{"name" => name, "url" => bad_url})
+        cs = changeset(%{name: name, url: bad_url})
         refute cs.valid?
-        assert :url in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :url end)
       end
     end
   end

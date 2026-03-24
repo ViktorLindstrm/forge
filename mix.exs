@@ -44,6 +44,7 @@ defmodule Forge.MixProject do
   defp deps do
     [
       {:tidewave, "~> 0.5", only: [:dev]},
+      {:ash_diagram, "~> 0.2", only: [:dev]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:phoenix, "~> 1.8.5"},
       {:phoenix_ecto, "~> 4.5"},

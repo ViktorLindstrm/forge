@@ -47,7 +47,8 @@ config :spark,
 
 config :forge,
   ecto_repos: [Forge.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  ash_domains: [Forge.Projects]
 
 # Configure the endpoint
 config :forge, ForgeWeb.Endpoint,
