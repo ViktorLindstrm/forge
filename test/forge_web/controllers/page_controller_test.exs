@@ -1,5 +1,5 @@
 defmodule ForgeWeb.PageControllerTest do
-  use ForgeWeb.ConnCase
+  use ForgeWeb.ConnCase, async: true
 
   test "GET / redirects to projects", %{conn: conn} do
     conn = get(conn, ~p"/")

@@ -1,5 +1,5 @@
 defmodule Forge.ProjectsIntegrationTest do
-  use Forge.DataCase
+  use Forge.DataCase, async: true
   use ExUnitProperties
 
   alias Forge.Projects

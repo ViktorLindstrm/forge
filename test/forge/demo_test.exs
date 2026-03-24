@@ -1,5 +1,5 @@
 defmodule Forge.DemoTest do
-  use Forge.DataCase
+  use Forge.DataCase, async: true
 
   alias Forge.Demo
 
