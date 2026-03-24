@@ -12,7 +12,9 @@ defmodule Forge.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      consolidate_protocols: Mix.env() != :dev
+      consolidate_protocols: Mix.env() != :dev,
+      description: "Forge - Phoenix LiveView project management app",
+      licenses: ["GPL-3.0-only"]
     ]
   end
 

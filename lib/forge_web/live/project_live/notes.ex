@@ -10,7 +10,7 @@ defmodule ForgeWeb.ProjectLive.Notes do
   defdelegate create_journal_entry(attrs), to: Projects
   defdelegate delete_journal_entry(entry), to: Projects
 
-  @spec handle_note_create(%{required(String.t()) => map()}, project_id()) ::
+  @spec handle_note_create(%{required(String.t()) => %{String.t() => String.t()}}, project_id()) ::
           Result.ok(JournalEntry.t()) | Result.error_changeset() | {:error, :blank_body}
   def handle_note_create(%{"note" => params}, project_id) do
     body = params |> Map.get("body", "") |> String.trim()

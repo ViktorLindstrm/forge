@@ -294,6 +294,8 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         project = create_project!()
         {:ok, lv, _} = mount_show(project)
 
+        lv |> element("#bom-add-trigger") |> render_click()
+
         html =
           lv
           |> form("#bom-quick-form", bom: %{name: item_name, quantity: 1, unit_price: "20.00"})
@@ -341,14 +343,16 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
       check all(item_name <- name_generator()) do
         project = create_project!()
         {:ok, lv, html_before} = mount_show(project)
-        assert html_before =~ "0 items"
+        assert html_before =~ "No items"
+
+        lv |> element("#bom-add-trigger") |> render_click()
 
         lv
         |> form("#bom-quick-form", bom: %{name: item_name, quantity: 1, unit_price: "15.00"})
         |> render_submit()
 
         html = render(lv)
-        assert html =~ "1 items"
+        assert html =~ "1 item"
       end
     end
   end
@@ -360,6 +364,8 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
       check all(title <- title_generator()) do
         project = create_project!()
         {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#task-add-trigger") |> render_click()
 
         html =
           lv
@@ -411,7 +417,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         project = create_project!()
         {:ok, _lv, html} = mount_show(project)
         assert html =~ "note-form-wrapper"
-        assert html =~ "hidden"
+        assert section_hidden?(html, "note-form-wrapper")
       end
     end
 

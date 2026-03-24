@@ -450,7 +450,7 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div id="task-form-wrapper" class={if @task_form_open?, do: "mt-4", else: "hidden mt-4"}>
+        <div :if={@task_form_open?} id="task-form-wrapper" class="mt-4">
           <.form for={@task_form} id="task-quick-form" phx-submit="task_create" class="space-y-3">
             <.input
               field={@task_form[:title]}
@@ -626,7 +626,7 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div id="bom-form-wrapper" class={if @bom_form_open?, do: "mt-4", else: "hidden mt-4"}>
+        <div :if={@bom_form_open?} id="bom-form-wrapper" class="mt-4">
           <.form for={@bom_form} id="bom-quick-form" phx-submit="bom_create" class="space-y-3">
             <.field
               field={@bom_form[:name]}
@@ -813,7 +813,7 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div id="note-form-wrapper" class={if @note_form_open?, do: "mt-4", else: "hidden mt-4"}>
+        <div id="note-form-wrapper" class={["mt-4", if(@note_form_open?, do: "", else: "hidden")]}>
           <.form for={@note_form} id="note-quick-form" phx-submit="note_create" class="space-y-3">
             <.input field={@note_form[:title]} type="text" label="Title (optional)" />
             <.input field={@note_form[:body]} type="textarea" label="Body" rows={4} />

@@ -11,6 +11,10 @@ defmodule ForgeWeb.ProjectLive.Index do
     {"Done", :done}
   ]
 
+  @type group_key :: String.t() | pos_integer()
+  @type group_filter_status :: Forge.Projects.Project.status() | :all
+  @type group_filters :: %{group_key() => group_filter_status()}
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -326,7 +330,13 @@ defmodule ForgeWeb.ProjectLive.Index do
         other -> String.to_existing_atom(other)
       end
 
-    group_filters = Map.put(socket.assigns.group_filters, group_key, status)
+    key =
+      case Integer.parse(group_key) do
+        {id, ""} -> id
+        _ -> group_key
+      end
+
+    group_filters = Map.put(socket.assigns.group_filters, key, status)
     {:noreply, assign(socket, :group_filters, group_filters)}
   end
 
@@ -349,7 +359,7 @@ defmodule ForgeWeb.ProjectLive.Index do
   defp filter_projects(projects, :all), do: projects
   defp filter_projects(projects, status), do: Enum.filter(projects, &(&1.status == status))
 
-  @spec group_section_id(Forge.Projects.ProjectGroup.t() | nil) :: String.t() | pos_integer()
+  @spec group_section_id(Forge.Projects.ProjectGroup.t() | nil) :: group_key()
   defp group_section_id(nil), do: "ungrouped"
   defp group_section_id(group), do: group.id
 
