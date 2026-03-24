@@ -33,10 +33,8 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 | 📁 | **Projects** | Create, categorize, and track status: idea → active → paused → done |
 | ✅ | **Tasks** | Hierarchical tasks with priorities, pinning, due dates, and drag-to-sort |
 | 🔩 | **BOM** | Manage components and estimated costs per project |
-| 📓 | **Journal** | Notes and logs attached to each project |
-| 📊 | **KPIs & badges** | Quick health overview at a glance |
-| 🧱 | **Ash resources** | Domain logic in resources and actions — not in the UI layer |
-| 🧪 | **Property-based tests** | StreamData-driven tests for core rules |
+| 📓 | **Notes** | Notes and logs attached to each project |
+| 📊 | **Status overview** | At-a-glance project counts by status with pinned task highlights on each card |
 
 ---
 
@@ -50,6 +48,8 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 | 🎨 | UI | Petal Components + Tailwind CSS |
 | 🐘 | Database | PostgreSQL |
 | 🌐 | HTTP client | Req |
+| 🧱 | Architecture | Ash resources, actions, validations, policies |
+| 🧪 | Testing | StreamData property-based tests |
 | 🛠 | Dev tools | Tidewave (dev only), Igniter (dev) |
 
 ---
