@@ -15,13 +15,13 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 **Projects overview**
 
 <p align="center">
-  <img src="docs/screenshot-projects.png" alt="Forge projects overview" width="850"/>
+  <img src="docs/screenshot-overview.png" alt="Forge projects overview" width="850"/>
 </p>
 
-**Project detail — Garden Weather Station**
+**Project detail**
 
 <p align="center">
-  <img src="docs/screenshot-garden-weather-station.png" alt="Forge project detail view" width="850"/>
+  <img src="docs/screenshot-project.png" alt="Forge project detail view" width="850"/>
 </p>
 
 ---
@@ -123,15 +123,6 @@ This project is open and welcoming to everyone. Please see [CODE_OF_CONDUCT.md](
 ## 🔒 Security
 
 Found a vulnerability? Please do **not** open a public issue. Instead, use [GitHub's private security advisory](../../security/advisories/new) to report it confidentially. See [SECURITY.md](SECURITY.md) for details.
-
----
-
-## 🗺 Roadmap & ideas
-
-- 📱 Mobile-friendly improvements and better small-screen layouts
-- 🔍 Search & filters for tasks across all projects
-- 📤 Export/import (CSV / JSON) for BOMs and projects
-- 🔗 Integrations: calendar export, webhooks, or Req-based external services
 
 ---
 
