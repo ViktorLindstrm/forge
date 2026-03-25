@@ -1,5 +1,5 @@
 defmodule Forge.ProjectsIntegrationTest do
-  use Forge.DataCase
+  use Forge.DataCase, async: true
   use ExUnitProperties
 
   alias Forge.Projects
@@ -76,7 +76,7 @@ defmodule Forge.ProjectsIntegrationTest do
 
         {:ok, _} = Projects.delete_project(final)
 
-        assert_raise Ecto.NoResultsError, fn -> Projects.get_project!(final.id) end
+        assert_raise Ash.Error.Invalid, fn -> Projects.get_project!(final.id) end
       end
     end
   end
@@ -575,15 +575,15 @@ defmodule Forge.ProjectsIntegrationTest do
         {:ok, _} = Projects.delete_project(project)
 
         Enum.each(task_ids, fn id ->
-          assert_raise Ecto.NoResultsError, fn -> Projects.get_task!(id) end
+          assert_raise Ash.Error.Invalid, fn -> Projects.get_task!(id) end
         end)
 
         Enum.each(bom_ids, fn id ->
-          assert_raise Ecto.NoResultsError, fn -> Projects.get_bom_item!(id) end
+          assert_raise Ash.Error.Invalid, fn -> Projects.get_bom_item!(id) end
         end)
 
         Enum.each(journal_ids, fn id ->
-          assert_raise Ecto.NoResultsError, fn -> Projects.get_journal_entry!(id) end
+          assert_raise Ash.Error.Invalid, fn -> Projects.get_journal_entry!(id) end
         end)
       end
     end

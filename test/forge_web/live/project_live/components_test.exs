@@ -80,31 +80,29 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
     end
   end
 
-  # ── bom_params/0 ──────────────────────────────────────────────────────────
+  # ── bom_form/0 ──────────────────────────────────────────────────────────
 
-  describe "bom_params/0" do
-    test "returns map with expected default keys" do
-      params = Components.bom_params()
-      assert is_map(params)
-      assert Map.has_key?(params, "name")
-      assert Map.has_key?(params, "quantity")
-      assert Map.has_key?(params, "unit_price")
+  describe "bom_form/0" do
+    test "returns a Phoenix.HTML.Form struct" do
+      form = Components.bom_form()
+      assert %Phoenix.HTML.Form{} = form
     end
 
-    test "name defaults to empty string" do
-      assert Components.bom_params()["name"] == ""
+    test "form source is an AshPhoenix.Form" do
+      form = Components.bom_form()
+      assert %AshPhoenix.Form{} = form.source
     end
 
-    test "quantity defaults to 1" do
-      assert Components.bom_params()["quantity"] == 1
+    test "form name is 'bom'" do
+      form = Components.bom_form()
+      assert form.name == "bom"
     end
 
-    test "unit_price defaults to empty string" do
-      assert Components.bom_params()["unit_price"] == ""
-    end
-
-    test "Components.bom_params/0 and Bom.bom_params/0 return identical values" do
-      assert Components.bom_params() == ForgeWeb.ProjectLive.Bom.bom_params()
+    test "Components.bom_form/0 and Bom.bom_form/0 return equivalent forms" do
+      f1 = Components.bom_form()
+      f2 = ForgeWeb.ProjectLive.Bom.bom_form()
+      assert f1.source.resource == f2.source.resource
+      assert f1.source.action == f2.source.action
     end
   end
 

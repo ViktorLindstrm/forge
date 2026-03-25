@@ -1,8 +1,126 @@
 defmodule Forge.Projects.BomItem do
-  use Ecto.Schema
-  import Ecto.Changeset
+  use Ash.Resource,
+    domain: Forge.Projects,
+    data_layer: AshPostgres.DataLayer
 
   @statuses [:needed, :ordered, :received]
+
+  postgres do
+    table "bom_items"
+    repo Forge.Repo
+
+    references do
+      reference :project, on_delete: :delete
+    end
+  end
+
+  resource do
+    description "A bill-of-materials item belonging to a project"
+  end
+
+  actions do
+    defaults [:destroy]
+
+    read :read do
+      primary? true
+
+      prepare fn query, _context ->
+        Ash.Query.sort(query, sort_order: :asc, inserted_at: :asc)
+      end
+    end
+
+    create :create do
+      accept [
+        :name,
+        :quantity,
+        :unit,
+        :supplier,
+        :link,
+        :unit_price,
+        :currency,
+        :status,
+        :notes,
+        :sort_order,
+        :project_id
+      ]
+
+      change {Forge.Projects.Changes.SetNextSortOrder, filter_attribute: :project_id}
+    end
+
+    update :update do
+      accept [
+        :name,
+        :quantity,
+        :unit,
+        :supplier,
+        :link,
+        :unit_price,
+        :currency,
+        :status,
+        :notes,
+        :sort_order
+      ]
+    end
+  end
+
+  validations do
+    validate numericality(:quantity, greater_than: 0)
+  end
+
+  attributes do
+    uuid_primary_key :id
+
+    attribute :name, :string do
+      public? true
+      allow_nil? false
+    end
+
+    attribute :quantity, :integer do
+      public? true
+      allow_nil? false
+      default 1
+    end
+
+    attribute :unit, :string, public?: true
+    attribute :supplier, :string, public?: true
+    attribute :link, :string, public?: true
+    attribute :unit_price, :decimal, public?: true
+
+    attribute :currency, :string do
+      public? true
+      allow_nil? false
+      default "SEK"
+    end
+
+    attribute :status, :atom do
+      public? true
+      allow_nil? false
+      default :needed
+      constraints one_of: @statuses
+    end
+
+    attribute :notes, :string, public?: true
+
+    attribute :sort_order, :integer do
+      public? true
+      allow_nil? false
+      default 0
+    end
+
+    timestamps type: :utc_datetime
+  end
+
+  relationships do
+    belongs_to :project, Forge.Projects.Project do
+      public? true
+      allow_nil? false
+      attribute_type :integer
+    end
+  end
+
+  calculations do
+    calculate :total_price, :decimal, Forge.Projects.Calculations.BomItemTotalPrice
+  end
 
   @type status :: :needed | :ordered | :received
 
@@ -19,50 +137,10 @@ defmodule Forge.Projects.BomItem do
           notes: String.t() | nil,
           sort_order: non_neg_integer(),
           project_id: pos_integer() | nil,
-          project: Forge.Projects.Project.t() | Ecto.Association.NotLoaded.t(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
 
-  @primary_key {:id, :binary_id, autogenerate: true}
-  @foreign_key_type :id
-
-  schema "bom_items" do
-    field :name, :string
-    field :quantity, :integer, default: 1
-    field :unit, :string
-    field :supplier, :string
-    field :link, :string
-    field :unit_price, :decimal
-    field :currency, :string, default: "SEK"
-    field :status, Ecto.Enum, values: @statuses, default: :needed
-    field :notes, :string
-    field :sort_order, :integer, default: 0
-    belongs_to :project, Forge.Projects.Project
-
-    timestamps(type: :utc_datetime)
-  end
-
   @spec statuses() :: [status(), ...]
   def statuses, do: @statuses
-
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
-  def changeset(item, attrs) do
-    item
-    |> cast(attrs, [
-      :name,
-      :quantity,
-      :unit,
-      :supplier,
-      :link,
-      :unit_price,
-      :currency,
-      :status,
-      :notes,
-      :sort_order,
-      :project_id
-    ])
-    |> validate_required([:name, :project_id])
-    |> validate_number(:quantity, greater_than: 0)
-  end
 end

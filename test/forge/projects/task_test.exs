@@ -11,25 +11,18 @@ defmodule Forge.Projects.TaskTest do
     string(:printable, min_length: 1, max_length: 200)
   end
 
-  defp valid_attrs_generator do
-    gen all(
-          title <- title_generator(),
-          status <- one_of(Enum.map(@statuses, &constant/1)),
-          priority <- one_of(Enum.map(@priorities, &constant/1))
-        ) do
-      %{
-        "title" => title,
-        "status" => to_string(status),
-        "priority" => to_string(priority),
-        "project_id" => 999_999
-      }
-    end
+  defp changeset(attrs) do
+    Ash.Changeset.for_create(Task, :create, attrs)
   end
 
-  describe "changeset/2 with valid data" do
+  describe "for_create/3 with valid data" do
     property "accepts any non-empty title with project_id" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Task.changeset(%Task{}, attrs)
+      check all(
+              title <- title_generator(),
+              status <- one_of(Enum.map(@statuses, &constant/1)),
+              priority <- one_of(Enum.map(@priorities, &constant/1))
+            ) do
+        cs = changeset(%{title: title, status: status, priority: priority, project_id: 999_999})
         assert cs.valid?
       end
     end
@@ -39,13 +32,7 @@ defmodule Forge.Projects.TaskTest do
               status <- one_of(Enum.map(@statuses, &constant/1)),
               title <- title_generator()
             ) do
-        cs =
-          Task.changeset(%Task{}, %{
-            "title" => title,
-            "project_id" => 1,
-            "status" => to_string(status)
-          })
-
+        cs = changeset(%{title: title, project_id: 1, status: status})
         assert cs.valid?
       end
     end
@@ -55,34 +42,20 @@ defmodule Forge.Projects.TaskTest do
               priority <- one_of(Enum.map(@priorities, &constant/1)),
               title <- title_generator()
             ) do
-        cs =
-          Task.changeset(%Task{}, %{
-            "title" => title,
-            "project_id" => 1,
-            "priority" => to_string(priority)
-          })
-
+        cs = changeset(%{title: title, project_id: 1, priority: priority})
         assert cs.valid?
       end
     end
 
-    property "accepts optional due_date as ISO date string" do
+    property "accepts optional due_date as Date" do
       check all(
               year <- integer(2000..2099),
               month <- integer(1..12),
               day <- integer(1..28),
               title <- title_generator()
             ) do
-        date_str =
-          "#{year}-#{String.pad_leading(to_string(month), 2, "0")}-#{String.pad_leading(to_string(day), 2, "0")}"
-
-        cs =
-          Task.changeset(%Task{}, %{
-            "title" => title,
-            "project_id" => 1,
-            "due_date" => date_str
-          })
-
+        due = Date.new!(year, month, day)
+        cs = changeset(%{title: title, project_id: 1, due_date: due})
         assert cs.valid?
       end
     end
@@ -92,48 +65,34 @@ defmodule Forge.Projects.TaskTest do
               sort_order <- positive_integer(),
               title <- title_generator()
             ) do
-        cs =
-          Task.changeset(%Task{}, %{
-            "title" => title,
-            "project_id" => 1,
-            "sort_order" => sort_order
-          })
-
+        cs = changeset(%{title: title, project_id: 1, sort_order: sort_order})
         assert cs.valid?
       end
     end
   end
 
-  describe "changeset/2 with invalid data" do
+  describe "for_create/3 with invalid data" do
     property "rejects missing title" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Task.changeset(%Task{}, Map.delete(attrs, "title"))
+      check all(status <- one_of(Enum.map(@statuses, &constant/1))) do
+        cs = changeset(%{status: status, project_id: 1})
         refute cs.valid?
-        assert :title in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :title end)
       end
     end
 
     property "rejects nil title" do
-      check all(attrs <- valid_attrs_generator()) do
-        cs = Task.changeset(%Task{}, Map.put(attrs, "title", nil))
+      check all(status <- one_of(Enum.map(@statuses, &constant/1))) do
+        cs = changeset(%{title: nil, status: status, project_id: 1})
         refute cs.valid?
-        assert :title in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :title end)
       end
     end
 
     property "rejects missing project_id" do
       check all(title <- title_generator()) do
-        cs = Task.changeset(%Task{}, %{"title" => title})
+        cs = changeset(%{title: title})
         refute cs.valid?
-        assert :project_id in Keyword.keys(cs.errors)
-      end
-    end
-
-    property "rejects nil project_id" do
-      check all(title <- title_generator()) do
-        cs = Task.changeset(%Task{}, %{"title" => title, "project_id" => nil})
-        refute cs.valid?
-        assert :project_id in Keyword.keys(cs.errors)
+        assert Enum.any?(cs.errors, fn e -> e.field == :project_id end)
       end
     end
   end

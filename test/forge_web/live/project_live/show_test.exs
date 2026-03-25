@@ -609,7 +609,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         lv |> element("#project-delete") |> render_click()
 
         assert_redirect(lv, ~p"/projects")
-        assert_raise Ecto.NoResultsError, fn -> Projects.get_project!(project.id) end
+        assert_raise Ash.Error.Invalid, fn -> Projects.get_project!(project.id) end
       end
     end
   end

@@ -64,6 +64,10 @@ defmodule ForgeWeb.ProjectLive.Notes do
 
   @spec note_form() :: Phoenix.HTML.Form.t()
   def note_form do
-    Phoenix.Component.to_form(%{"body" => "", "title" => ""}, as: :note)
+    AshPhoenix.Form.for_create(Forge.Projects.JournalEntry, :create,
+      domain: Forge.Projects,
+      as: "note"
+    )
+    |> Phoenix.Component.to_form()
   end
 end

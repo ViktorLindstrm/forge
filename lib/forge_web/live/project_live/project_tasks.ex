@@ -147,14 +147,10 @@ defmodule ForgeWeb.ProjectLive.Tasks do
 
   @spec task_form() :: Phoenix.HTML.Form.t()
   def task_form do
-    Phoenix.Component.to_form(
-      %{
-        "title" => "",
-        "description" => "",
-        "priority" => "medium",
-        "status" => "todo"
-      },
-      as: :task
+    AshPhoenix.Form.for_create(Forge.Projects.Task, :create,
+      domain: Forge.Projects,
+      as: "task"
     )
+    |> Phoenix.Component.to_form()
   end
 end

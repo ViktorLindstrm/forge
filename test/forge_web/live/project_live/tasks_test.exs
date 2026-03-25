@@ -56,7 +56,8 @@ defmodule ForgeWeb.ProjectLive.TasksTest do
         {:ok, result} = Tasks.handle_task_create(%{"task" => %{"title" => title}}, project.id)
         form = Keyword.get(result.assigns, :task_form)
         assert %Phoenix.HTML.Form{} = form
-        assert form.params["title"] == ""
+        assert %AshPhoenix.Form{} = form.source
+        assert form.source.resource == Forge.Projects.Task
       end
     end
   end

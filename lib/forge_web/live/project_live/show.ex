@@ -259,7 +259,7 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> assign(:task_counts, task_counts)
      |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
      |> assign(:bom_budget, Projects.bom_budget(project.id))
-     |> assign(:bom_form, to_form(Components.bom_params(), as: :bom))
+     |> assign(:bom_form, Components.bom_form())
      |> assign(:tasks_empty?, tasks == [])
      |> assign(:pinned_current_task, pinned_current_task)
      |> assign(:pinned_upcoming_task, pinned_upcoming_task)
@@ -277,7 +277,7 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> assign(:note_total_pages, total_pages)
      |> assign(:notes_empty?, entries == [])
      |> assign(:budget_editing?, false)
-     |> assign(:budget_form, to_form(Forge.Projects.change_project(project), as: :project))
+     |> assign(:budget_form, Projects.change_project(project))
      |> stream(:tasks, tasks)
      |> stream(:journal_entries, entries)}
   end
@@ -332,8 +332,8 @@ defmodule ForgeWeb.ProjectLive.Show do
       {:error, :blank_title} ->
         {:noreply, socket}
 
-      {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, :task_form, to_form(changeset, as: :task))}
+      {:error, {:changeset, _error}} ->
+        {:noreply, socket}
     end
   end
 
@@ -367,12 +367,7 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   def handle_event("task_edit_open", %{"id" => id}, socket) do
     task = Projects.get_task!(id)
-
-    form =
-      task
-      |> Projects.change_task(%{})
-      |> to_form(as: :task)
-
+    form = Projects.change_task(task, %{})
     tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
     {:noreply,
@@ -395,13 +390,8 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   def handle_event("task_edit_validate", %{"task_id" => id, "task" => task_params}, socket) do
     task = Projects.get_task!(id)
-
-    changeset =
-      task
-      |> Projects.change_task(task_params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :task_edit_form, to_form(changeset, as: :task))}
+    form = Projects.change_task(task, task_params)
+    {:noreply, assign(socket, :task_edit_form, form)}
   end
 
   def handle_event("task_edit_save", params, socket) do
@@ -426,8 +416,8 @@ defmodule ForgeWeb.ProjectLive.Show do
       {:error, :blank_title} ->
         {:noreply, socket}
 
-      {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, :task_edit_form, to_form(changeset, as: :task))}
+      {:error, {:changeset, _error}} ->
+        {:noreply, socket}
     end
   end
 
@@ -660,8 +650,8 @@ defmodule ForgeWeb.ProjectLive.Show do
 
         {:noreply, socket}
 
-      {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, :bom_form, to_form(changeset, as: :bom))}
+      {:error, {:changeset, _error}} ->
+        {:noreply, socket}
     end
   end
 
@@ -739,8 +729,8 @@ defmodule ForgeWeb.ProjectLive.Show do
          |> assign(:budget_editing?, false)
          |> assign(:budget_form, budget_form(project))}
 
-      {:error, changeset} ->
-        {:noreply, assign(socket, :budget_form, to_form(changeset, as: :project))}
+      {:error, _error} ->
+        {:noreply, socket}
     end
   end
 
@@ -756,7 +746,7 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   @spec budget_form(Forge.Projects.Project.t()) :: Phoenix.HTML.Form.t()
   defp budget_form(project) do
-    to_form(Projects.change_project(project), as: :project)
+    Projects.change_project(project)
   end
 
   @spec budget_display(Decimal.t() | nil) :: String.t()

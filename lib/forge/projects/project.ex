@@ -1,17 +1,144 @@
 defmodule Forge.Projects.Project do
-  use Ecto.Schema
-  import Ecto.Changeset
+  use Ash.Resource,
+    domain: Forge.Projects,
+    data_layer: AshPostgres.DataLayer
 
   @statuses [:idea, :active, :paused, :done]
   @colors [:blue, :violet, :emerald, :amber, :rose, :orange, :sky]
 
+  postgres do
+    table "projects"
+    repo Forge.Repo
+
+    references do
+      reference :project_group, on_delete: :nilify
+    end
+  end
+
+  resource do
+    description "A project being tracked in Forge"
+  end
+
+  actions do
+    defaults [:destroy]
+
+    read :read do
+      primary? true
+      prepare Forge.Projects.Preparations.SortProjectsByStatus
+    end
+
+    create :create do
+      accept [
+        :name,
+        :description,
+        :status,
+        :tech_stack,
+        :url,
+        :notes,
+        :color,
+        :budget,
+        :project_group_id
+      ]
+    end
+
+    update :update do
+      accept [
+        :name,
+        :description,
+        :status,
+        :tech_stack,
+        :url,
+        :notes,
+        :color,
+        :budget,
+        :project_group_id
+      ]
+    end
+  end
+
+  validations do
+    validate match(:url, ~r/^https?:\/\/.+/),
+      where: [present(:url), changing(:url)],
+      message: "must start with http:// or https://"
+  end
+
+  attributes do
+    integer_primary_key :id
+
+    attribute :name, :string do
+      public? true
+      allow_nil? false
+      constraints max_length: 100
+    end
+
+    attribute :description, :string, public?: true
+    attribute :tech_stack, :string, public?: true
+    attribute :url, :string, public?: true
+    attribute :notes, :string, public?: true
+    attribute :budget, :decimal, public?: true
+
+    attribute :status, :atom do
+      public? true
+      allow_nil? false
+      default :idea
+      constraints one_of: @statuses
+    end
+
+    attribute :color, :atom do
+      public? true
+      allow_nil? false
+      default :blue
+      constraints one_of: @colors
+    end
+
+    timestamps type: :utc_datetime
+  end
+
+  relationships do
+    belongs_to :project_group, Forge.Projects.ProjectGroup do
+      public? true
+      allow_nil? true
+      attribute_type :integer
+    end
+
+    has_many :tasks, Forge.Projects.Task do
+      public? true
+    end
+
+    has_one :current_task, Forge.Projects.Task do
+      public? true
+      filter expr(pin_status == :current)
+    end
+
+    has_one :upcoming_task, Forge.Projects.Task do
+      public? true
+      filter expr(pin_status == :upcoming)
+    end
+
+    has_many :bom_items, Forge.Projects.BomItem do
+      public? true
+    end
+
+    has_many :journal_entries, Forge.Projects.JournalEntry do
+      public? true
+    end
+  end
+
+  aggregates do
+    count :task_count, :tasks
+
+    count :done_task_count, :tasks do
+      filter expr(status == :done)
+    end
+
+    count :bom_item_count, :bom_items
+    count :journal_entry_count, :journal_entries
+  end
+
   @type status :: :idea | :active | :paused | :done
   @type color :: :blue | :violet | :emerald | :amber | :rose | :orange | :sky
 
-  @type pinned_tasks :: %{
-          current: Forge.Projects.Task.t() | nil,
-          upcoming: Forge.Projects.Task.t() | nil
-        }
+  @type pinned_task :: Forge.Projects.Task.t() | nil
 
   @type t :: %__MODULE__{
           id: pos_integer() | nil,
@@ -24,60 +151,15 @@ defmodule Forge.Projects.Project do
           color: color(),
           budget: Decimal.t() | nil,
           project_group_id: pos_integer() | nil,
-          project_group: Forge.Projects.ProjectGroup.t() | Ecto.Association.NotLoaded.t(),
-          pinned_tasks: pinned_tasks() | nil,
-          tasks: [Forge.Projects.Task.t()] | Ecto.Association.NotLoaded.t(),
-          bom_items: [Forge.Projects.BomItem.t()] | Ecto.Association.NotLoaded.t(),
-          journal_entries: [Forge.Projects.JournalEntry.t()] | Ecto.Association.NotLoaded.t(),
+          current_task: pinned_task(),
+          upcoming_task: pinned_task(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
-
-  @primary_key {:id, :id, autogenerate: true}
-  @foreign_key_type :id
-
-  schema "projects" do
-    field :name, :string
-    field :description, :string
-    field :status, Ecto.Enum, values: @statuses, default: :idea
-    field :tech_stack, :string
-    field :url, :string
-    field :notes, :string
-    field :color, Ecto.Enum, values: @colors, default: :blue
-    field :budget, :decimal
-    belongs_to :project_group, Forge.Projects.ProjectGroup
-    field :pinned_tasks, :map, virtual: true
-
-    has_many :tasks, Forge.Projects.Task
-    has_many :bom_items, Forge.Projects.BomItem
-    has_many :journal_entries, Forge.Projects.JournalEntry
-
-    timestamps(type: :utc_datetime)
-  end
 
   @spec statuses() :: [status(), ...]
   def statuses, do: @statuses
 
   @spec colors() :: [color(), ...]
   def colors, do: @colors
-
-  @doc false
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
-  def changeset(project, attrs) do
-    project
-    |> cast(attrs, [
-      :name,
-      :description,
-      :status,
-      :tech_stack,
-      :url,
-      :notes,
-      :color,
-      :budget,
-      :project_group_id
-    ])
-    |> validate_required([:name])
-    |> validate_format(:url, ~r/^https?:\/\/.+/, message: "must start with http:// or https://")
-    |> validate_length(:name, max: 100)
-  end
 end

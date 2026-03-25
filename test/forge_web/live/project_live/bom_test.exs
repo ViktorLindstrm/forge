@@ -51,8 +51,8 @@ defmodule ForgeWeb.ProjectLive.BomTest do
         {:ok, result} = Bom.handle_bom_create(params["bom"], project.id)
         form = Keyword.get(result.assigns, :bom_form)
         assert %Phoenix.HTML.Form{} = form
-        assert form.params["name"] == ""
-        assert form.params["quantity"] == 1
+        assert %AshPhoenix.Form{} = form.source
+        assert form.source.resource == Forge.Projects.BomItem
       end
     end
 
@@ -62,7 +62,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
 
         params = %{"name" => "  ", "quantity" => to_string(qty)}
 
-        assert {:error, {:changeset, %Ecto.Changeset{}}} =
+        assert {:error, {:changeset, %Ash.Error.Invalid{}}} =
                  Bom.handle_bom_create(params, project.id)
       end
     end
@@ -117,7 +117,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
         item = Projects.list_bom_items(project.id) |> List.last()
 
         {:ok, _} = Bom.handle_bom_delete(%{"id" => item.id}, project.id)
-        assert_raise Ecto.NoResultsError, fn -> Projects.get_bom_item!(item.id) end
+        assert_raise Ash.Error.Invalid, fn -> Projects.get_bom_item!(item.id) end
       end
     end
   end
@@ -180,12 +180,13 @@ defmodule ForgeWeb.ProjectLive.BomTest do
     end
   end
 
-  describe "bom_params/0" do
-    test "returns default empty form params" do
-      params = Bom.bom_params()
-      assert params["name"] == ""
-      assert params["quantity"] == 1
-      assert params["unit_price"] == ""
+  describe "bom_form/0" do
+    test "returns a Phoenix.HTML.Form backed by AshPhoenix.Form" do
+      form = Bom.bom_form()
+      assert %Phoenix.HTML.Form{} = form
+      assert %AshPhoenix.Form{} = form.source
+      assert form.source.resource == Forge.Projects.BomItem
+      assert form.name == "bom"
     end
   end
 end

@@ -25,8 +25,8 @@ defmodule ForgeWeb.ProjectLive.Components do
   @spec url_display(String.t()) :: String.t()
   def url_display(url), do: Formatting.url_display(url)
 
-  @spec bom_params() :: map()
-  def bom_params, do: Bom.bom_params()
+  @spec bom_form() :: Phoenix.HTML.Form.t()
+  def bom_form, do: Bom.bom_form()
 
   @spec note_form() :: Phoenix.HTML.Form.t()
   def note_form, do: Notes.note_form()

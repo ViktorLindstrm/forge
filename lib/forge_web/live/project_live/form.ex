@@ -2,7 +2,6 @@ defmodule ForgeWeb.ProjectLive.Form do
   use ForgeWeb, :live_view
 
   alias Forge.Projects
-  alias Forge.Projects.Project
 
   @colors [
     {"Blue", :blue},
@@ -222,12 +221,14 @@ defmodule ForgeWeb.ProjectLive.Form do
 
   @spec apply_action(Phoenix.LiveView.Socket.t(), atom(), map()) :: Phoenix.LiveView.Socket.t()
   defp apply_action(socket, :new, _params) do
-    project = %Project{}
-
     socket
     |> assign(:page_title, "New Project")
-    |> assign(:project, project)
-    |> assign(:form, to_form(Projects.change_project(project)))
+    |> assign(:project, nil)
+    |> assign(
+      :form,
+      AshPhoenix.Form.for_create(Forge.Projects.Project, :create, domain: Forge.Projects)
+      |> to_form()
+    )
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -236,13 +237,18 @@ defmodule ForgeWeb.ProjectLive.Form do
     socket
     |> assign(:page_title, "Edit Project")
     |> assign(:project, project)
-    |> assign(:form, to_form(Projects.change_project(project)))
+    |> assign(
+      :form,
+      AshPhoenix.Form.for_update(project, :update, domain: Forge.Projects) |> to_form()
+    )
   end
 
   @impl true
   def handle_event("validate", %{"project" => params}, socket) do
-    changeset = Projects.change_project(socket.assigns.project, params)
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    form =
+      AshPhoenix.Form.validate(socket.assigns.form.source, params) |> to_form()
+
+    {:noreply, assign(socket, form: form)}
   end
 
   def handle_event("save", %{"project" => params}, socket) do
@@ -269,17 +275,22 @@ defmodule ForgeWeb.ProjectLive.Form do
       {:ok, group} ->
         groups = Projects.list_project_groups()
 
-        changeset =
-          Projects.change_project(socket.assigns.project, %{"project_group_id" => group.id})
+        form =
+          AshPhoenix.Form.for_update(
+            socket.assigns.project || %Forge.Projects.Project{},
+            :update,
+            params: %{"project_group_id" => group.id},
+            domain: Forge.Projects
+          )
 
         {:noreply,
          socket
          |> assign(:groups, groups)
          |> assign(:show_new_group, false)
-         |> assign(:form, to_form(changeset))}
+         |> assign(:form, form)}
 
-      {:error, %Ecto.Changeset{} = cs} ->
-        msg = cs.errors |> Enum.map(fn {f, {m, _}} -> "#{f} #{m}" end) |> Enum.join(", ")
+      {:error, %Ash.Error.Invalid{} = error} ->
+        msg = error |> Ash.Error.to_error_class() |> inspect()
         {:noreply, put_flash(socket, :error, "Could not create group: #{msg}")}
     end
   end
@@ -287,28 +298,28 @@ defmodule ForgeWeb.ProjectLive.Form do
   @spec save_project(Phoenix.LiveView.Socket.t(), atom(), map()) ::
           {:noreply, Phoenix.LiveView.Socket.t()}
   defp save_project(socket, :new, params) do
-    case Projects.create_project(params) do
+    case AshPhoenix.Form.submit(socket.assigns.form.source, params: params) do
       {:ok, project} ->
         {:noreply,
          socket
          |> put_flash(:info, "Project created!")
          |> push_navigate(to: ~p"/projects/#{project}")}
 
-      {:error, changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
+      {:error, form} ->
+        {:noreply, assign(socket, form: to_form(form))}
     end
   end
 
   defp save_project(socket, :edit, params) do
-    case Projects.update_project(socket.assigns.project, params) do
+    case AshPhoenix.Form.submit(socket.assigns.form.source, params: params) do
       {:ok, project} ->
         {:noreply,
          socket
          |> put_flash(:info, "Project updated!")
          |> push_navigate(to: return_path(socket.assigns.return_to, project))}
 
-      {:error, changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
+      {:error, form} ->
+        {:noreply, assign(socket, form: to_form(form))}
     end
   end
 
