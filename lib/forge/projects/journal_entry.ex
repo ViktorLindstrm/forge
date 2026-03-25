@@ -21,9 +21,28 @@ defmodule Forge.Projects.JournalEntry do
 
     read :read do
       primary? true
+      prepare build(sort: [sort_order: :desc, inserted_at: :desc])
+    end
+
+    read :by_project do
+      description "Lists journal entries for a given project, newest first"
+      argument :project_id, :integer, allow_nil?: false
+      argument :page, :integer, allow_nil?: true, default: nil
+      argument :per_page, :integer, allow_nil?: true, default: nil
+
+      filter expr(project_id == ^arg(:project_id))
+      prepare build(sort: [sort_order: :desc, inserted_at: :desc])
 
       prepare fn query, _context ->
-        Ash.Query.sort(query, sort_order: :desc, inserted_at: :desc)
+        case {Ash.Query.get_argument(query, :page), Ash.Query.get_argument(query, :per_page)} do
+          {page, per_page} when is_integer(page) and is_integer(per_page) ->
+            query
+            |> Ash.Query.limit(per_page)
+            |> Ash.Query.offset((page - 1) * per_page)
+
+          _ ->
+            query
+        end
       end
     end
 

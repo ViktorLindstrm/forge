@@ -47,21 +47,6 @@ defmodule ForgeWeb.ProjectLive.Notes do
     end
   end
 
-  @spec handle_note_delete(%{required(String.t()) => String.t()}, project_id()) ::
-          Result.ok(JournalEntry.t())
-  def handle_note_delete(%{"id" => id}, project_id) do
-    entry = Projects.get_journal_entry!(id)
-    {:ok, _} = delete_journal_entry(entry)
-
-    entries = list_journal_entries(project_id)
-
-    {:ok,
-     %{
-       assigns: [notes_empty?: entries == []],
-       stream_delete: {:journal_entries, entry}
-     }}
-  end
-
   @spec note_form() :: Phoenix.HTML.Form.t()
   def note_form do
     AshPhoenix.Form.for_create(Forge.Projects.JournalEntry, :create,

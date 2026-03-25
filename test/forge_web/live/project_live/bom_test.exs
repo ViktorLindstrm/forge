@@ -95,7 +95,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
           project.id
         )
 
-        item = Projects.list_bom_items(project.id) |> List.last()
+        item = Projects.bom_budget(project.id).items |> List.last()
 
         before_budget = Projects.bom_budget(project.id)
         assert {:ok, result} = Bom.handle_bom_delete(%{"id" => item.id}, project.id)
@@ -114,7 +114,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
           project.id
         )
 
-        item = Projects.list_bom_items(project.id) |> List.last()
+        item = Projects.bom_budget(project.id).items |> List.last()
 
         {:ok, _} = Bom.handle_bom_delete(%{"id" => item.id}, project.id)
         assert_raise Ash.Error.Invalid, fn -> Projects.get_bom_item!(item.id) end
@@ -127,7 +127,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
       check all(name <- name_generator()) do
         project = create_project!()
         Bom.handle_bom_create(%{"name" => name, "quantity" => "1"}, project.id)
-        item = Projects.list_bom_items(project.id) |> List.last()
+        item = Projects.bom_budget(project.id).items |> List.last()
         assert item.status == :needed
 
         {:ok, _} = Bom.handle_bom_toggle(%{"id" => item.id}, project.id)
@@ -150,7 +150,7 @@ defmodule ForgeWeb.ProjectLive.BomTest do
           project.id
         )
 
-        item = Projects.list_bom_items(project.id) |> List.last()
+        item = Projects.bom_budget(project.id).items |> List.last()
 
         before_spent = Projects.bom_budget(project.id).spent
         {:ok, result} = Bom.handle_bom_toggle(%{"id" => item.id}, project.id)

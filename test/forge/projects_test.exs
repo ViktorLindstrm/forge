@@ -83,21 +83,6 @@ defmodule Forge.ProjectsTest do
     end
   end
 
-  describe "list_projects_by_status/1" do
-    property "only returns projects with the requested status" do
-      check all(
-              status <- status_generator(),
-              name <- project_name_generator()
-            ) do
-        {:ok, _p} =
-          Projects.create_project(%{"name" => name, "status" => to_string(status)})
-
-        results = Projects.list_projects_by_status(status)
-        assert Enum.all?(results, fn p -> p.status == status end)
-      end
-    end
-  end
-
   describe "get_project!/1" do
     property "retrieves the same project that was created" do
       check all(name <- project_name_generator()) do

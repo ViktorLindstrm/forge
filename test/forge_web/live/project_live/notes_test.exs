@@ -105,37 +105,6 @@ defmodule ForgeWeb.ProjectLive.NotesTest do
     end
   end
 
-  describe "handle_note_delete/2" do
-    property "deletes entry and returns stream_delete" do
-      check all(body <- body_generator()) do
-        project = create_project!()
-
-        {:ok, _} =
-          Projects.create_journal_entry(%{"body" => body, "project_id" => project.id})
-
-        entry = Projects.list_journal_entries(project.id) |> List.first()
-
-        assert {:ok, result} = Notes.handle_note_delete(%{"id" => entry.id}, project.id)
-        assert result.stream_delete == {:journal_entries, entry}
-        assert_raise Ash.Error.Invalid, fn -> Projects.get_journal_entry!(entry.id) end
-      end
-    end
-
-    property "notes_empty? is true after deleting the only entry" do
-      check all(body <- body_generator()) do
-        project = create_project!()
-
-        {:ok, _} =
-          Projects.create_journal_entry(%{"body" => body, "project_id" => project.id})
-
-        entry = Projects.list_journal_entries(project.id) |> List.first()
-
-        {:ok, result} = Notes.handle_note_delete(%{"id" => entry.id}, project.id)
-        assert Keyword.get(result.assigns, :notes_empty?) == true
-      end
-    end
-  end
-
   describe "note_form/0" do
     test "returns a Phoenix.HTML.Form backed by AshPhoenix.Form" do
       form = Notes.note_form()

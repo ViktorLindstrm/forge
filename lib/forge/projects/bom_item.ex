@@ -23,10 +23,15 @@ defmodule Forge.Projects.BomItem do
 
     read :read do
       primary? true
+      prepare build(sort: [sort_order: :asc, inserted_at: :asc])
+    end
 
-      prepare fn query, _context ->
-        Ash.Query.sort(query, sort_order: :asc, inserted_at: :asc)
-      end
+    read :by_project do
+      description "Lists all BOM items for a given project"
+      argument :project_id, :integer, allow_nil?: false
+
+      filter expr(project_id == ^arg(:project_id))
+      prepare build(sort: [sort_order: :asc, inserted_at: :asc])
     end
 
     create :create do
@@ -60,6 +65,22 @@ defmodule Forge.Projects.BomItem do
         :notes,
         :sort_order
       ]
+    end
+
+    update :toggle_status do
+      description "Cycles the status: needed → ordered → received → needed"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        new_status =
+          case changeset.data.status do
+            :needed -> :ordered
+            :ordered -> :received
+            _ -> :needed
+          end
+
+        Ash.Changeset.force_change_attribute(changeset, :status, new_status)
+      end
     end
   end
 
@@ -119,7 +140,15 @@ defmodule Forge.Projects.BomItem do
   end
 
   calculations do
-    calculate :total_price, :decimal, Forge.Projects.Calculations.BomItemTotalPrice
+    calculate :total_price,
+              :decimal,
+              expr(
+                if is_nil(unit_price) do
+                  nil
+                else
+                  unit_price * quantity
+                end
+              )
   end
 
   @type status :: :needed | :ordered | :received

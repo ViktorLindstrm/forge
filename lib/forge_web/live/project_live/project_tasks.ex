@@ -8,9 +8,6 @@ defmodule ForgeWeb.ProjectLive.Tasks do
 
   @type project_id :: Projects.project_id()
 
-  defdelegate list_tasks(project_id), to: Projects, as: :list_tasks
-  defdelegate list_tasks_with_subtasks(project_id), to: Projects, as: :list_tasks_with_subtasks
-  defdelegate list_tasks_tree(project_id), to: Projects, as: :list_tasks_tree
   defdelegate create_task(attrs), to: Projects, as: :create_task
   defdelegate toggle_task_done(task), to: Projects, as: :toggle_task_done
   defdelegate delete_task(task), to: Projects, as: :delete_task
@@ -39,7 +36,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
       case update_task(task, attrs) do
         {:ok, _task} ->
           task_counts = task_stats(project_id)
-          tasks = list_tasks_with_subtasks(project_id)
+          tasks = Projects.list_tasks_with_subtasks(project_id)
 
           {:ok,
            %{
@@ -82,7 +79,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
       case create_task(attrs) do
         {:ok, _task} ->
           task_counts = task_stats(project_id)
-          tasks = list_tasks_with_subtasks(project_id)
+          tasks = Projects.list_tasks_with_subtasks(project_id)
 
           {:ok,
            %{
@@ -117,7 +114,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
     case toggle_task_done(task) do
       {:ok, _task} ->
         task_counts = task_stats(project_id)
-        tasks = list_tasks_with_subtasks(project_id)
+        tasks = Projects.list_tasks_with_subtasks(project_id)
 
         {:ok,
          %{
@@ -136,7 +133,7 @@ defmodule ForgeWeb.ProjectLive.Tasks do
     {:ok, _} = delete_task(task)
 
     task_counts = task_stats(project_id)
-    tasks = list_tasks(project_id)
+    tasks = Projects.list_tasks(project_id)
 
     {:ok,
      %{

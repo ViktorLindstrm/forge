@@ -274,20 +274,17 @@ defmodule ForgeWeb.ProjectLive.Form do
     case Projects.create_project_group(%{"name" => name}) do
       {:ok, group} ->
         groups = Projects.list_project_groups()
+        current_source = socket.assigns.form.source
 
-        form =
-          AshPhoenix.Form.for_update(
-            socket.assigns.project || %Forge.Projects.Project{},
-            :update,
-            params: %{"project_group_id" => group.id},
-            domain: Forge.Projects
-          )
+        updated_form =
+          AshPhoenix.Form.validate(current_source, %{"project_group_id" => group.id})
+          |> to_form()
 
         {:noreply,
          socket
          |> assign(:groups, groups)
          |> assign(:show_new_group, false)
-         |> assign(:form, form)}
+         |> assign(:form, updated_form)}
 
       {:error, %Ash.Error.Invalid{} = error} ->
         msg = error |> Ash.Error.to_error_class() |> inspect()

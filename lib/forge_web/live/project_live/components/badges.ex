@@ -49,4 +49,7 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
   def color_bg(:orange), do: "bg-gradient-to-r from-orange-400 to-orange-600"
   def color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
   def color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
+
+  @spec url_display(String.t()) :: String.t()
+  defdelegate url_display(url), to: ForgeWeb.ProjectLive.Components.Formatting
 end

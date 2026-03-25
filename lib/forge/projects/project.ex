@@ -24,7 +24,23 @@ defmodule Forge.Projects.Project do
 
     read :read do
       primary? true
-      prepare Forge.Projects.Preparations.SortProjectsByStatus
+
+      prepare fn query, _context ->
+        require Ash.Expr
+
+        Ash.Query.sort(query, [
+          {Ash.Expr.calc(
+             cond do
+               status == :active -> 0
+               status == :idea -> 1
+               status == :paused -> 2
+               true -> 3
+             end,
+             type: :integer
+           ), :asc},
+          {:name, :asc}
+        ])
+      end
     end
 
     create :create do
@@ -124,6 +140,18 @@ defmodule Forge.Projects.Project do
     end
   end
 
+  calculations do
+    calculate :completion_percentage,
+              :float,
+              expr(
+                if task_count == 0 do
+                  nil
+                else
+                  done_task_count / task_count * 100.0
+                end
+              )
+  end
+
   aggregates do
     count :task_count, :tasks
 
@@ -132,6 +160,11 @@ defmodule Forge.Projects.Project do
     end
 
     count :bom_item_count, :bom_items
+
+    count :received_bom_item_count, :bom_items do
+      filter expr(status == :received)
+    end
+
     count :journal_entry_count, :journal_entries
   end
 

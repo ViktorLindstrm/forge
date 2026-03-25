@@ -192,8 +192,6 @@ defmodule ForgeWeb.ProjectLive.Show do
           project={@project}
           bom_budget={@bom_budget}
           note_count={@note_count}
-          budget_editing?={@budget_editing?}
-          budget_form={@budget_form}
         />
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -280,11 +278,6 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> assign(:budget_form, Projects.change_project(project))
      |> stream(:tasks, tasks)
      |> stream(:journal_entries, entries)}
-  end
-
-  @impl true
-  def handle_info({:project_updated, project}, socket) do
-    {:noreply, assign(socket, :project, project)}
   end
 
   @spec apply_result(Phoenix.LiveView.Socket.t(), {:ok, map()} | {:error, :could_not_update}) ::

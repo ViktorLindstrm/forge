@@ -11,19 +11,8 @@ defmodule ForgeWeb.ProjectLive.Components do
   alias ForgeWeb.ProjectLive.Components.Pills
 
   defdelegate pill(assigns), to: Pills
-
-  @spec color_bg(Forge.Projects.Project.color()) :: String.t()
-  def color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
-  def color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
-  def color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"
-  def color_bg(:amber), do: "bg-gradient-to-r from-amber-400 to-amber-600"
-  def color_bg(:rose), do: "bg-gradient-to-r from-rose-400 to-rose-600"
-  def color_bg(:orange), do: "bg-gradient-to-r from-orange-400 to-orange-600"
-  def color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
-  def color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
-
-  @spec url_display(String.t()) :: String.t()
-  def url_display(url), do: Formatting.url_display(url)
+  defdelegate color_bg(color), to: Badges
+  defdelegate url_display(url), to: Formatting
 
   @spec bom_form() :: Phoenix.HTML.Form.t()
   def bom_form, do: Bom.bom_form()
@@ -39,8 +28,6 @@ defmodule ForgeWeb.ProjectLive.Components do
   attr :project, :any, required: true
   attr :bom_budget, :any, required: true
   attr :note_count, :integer, required: true
-  attr :budget_editing?, :boolean, required: true
-  attr :budget_form, :any, required: true
 
   def summary_grid(assigns) do
     ~H"""

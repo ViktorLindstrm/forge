@@ -17,10 +17,7 @@ defmodule Forge.Projects.ProjectGroup do
 
     read :read do
       primary? true
-
-      prepare fn query, _context ->
-        Ash.Query.sort(query, name: :asc)
-      end
+      prepare build(sort: [name: :asc])
     end
 
     create :create do
