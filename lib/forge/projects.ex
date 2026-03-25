@@ -118,16 +118,6 @@ defmodule Forge.Projects do
     end
   end
 
-  @spec change_project(Project.t(), map()) :: Phoenix.HTML.Form.t()
-  def change_project(%Project{} = project, params \\ %{}) do
-    AshPhoenix.Form.for_update(project, :update,
-      params: params,
-      domain: __MODULE__,
-      as: "project"
-    )
-    |> Phoenix.Component.to_form()
-  end
-
   @spec count_by_status() :: status_counts()
   def count_by_status do
     aggregates =
@@ -187,16 +177,6 @@ defmodule Forge.Projects do
       {:ok, destroyed} -> {:ok, destroyed}
       err -> err
     end
-  end
-
-  @spec change_task(Task.t(), map()) :: Phoenix.HTML.Form.t()
-  def change_task(%Task{} = task, params \\ %{}) do
-    AshPhoenix.Form.for_update(task, :update,
-      params: params,
-      domain: __MODULE__,
-      as: "task"
-    )
-    |> Phoenix.Component.to_form()
   end
 
   @spec toggle_task_done(task_id() | Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
