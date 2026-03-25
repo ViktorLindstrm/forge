@@ -192,8 +192,6 @@ defmodule ForgeWeb.ProjectLive.Show do
           project={@project}
           bom_budget={@bom_budget}
           note_count={@note_count}
-          budget_editing?={@budget_editing?}
-          budget_form={@budget_form}
         />
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -277,97 +275,81 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> assign(:note_total_pages, total_pages)
      |> assign(:notes_empty?, entries == [])
      |> assign(:budget_editing?, false)
-     |> assign(:budget_form, Projects.change_project(project))
+     |> assign(:budget_form, build_budget_form(project))
      |> stream(:tasks, tasks)
      |> stream(:journal_entries, entries)}
   end
 
-  @impl true
-  def handle_info({:project_updated, project}, socket) do
-    {:noreply, assign(socket, :project, project)}
-  end
+  def handle_event("task_create", %{"task" => params} = payload, socket) do
+    project_id = socket.assigns.project.id
 
-  @spec apply_result(Phoenix.LiveView.Socket.t(), {:ok, map()} | {:error, :could_not_update}) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  defp apply_result(socket, {:ok, result}) when is_map(result) do
-    socket =
-      case Map.get(result, :assigns) do
-        nil -> socket
-        assigns -> Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-      end
+    params =
+      params
+      |> Map.put("project_id", project_id)
+      |> maybe_put_parent_task_id(Map.get(payload, "parent_task_id"))
 
-    case Map.get(result, :stream) do
-      {:reset, name, items} ->
-        {:noreply, stream(socket, name, items, reset: true)}
-
-      _ ->
-        case Map.get(result, :stream_delete) do
-          {name, item} -> {:noreply, stream_delete(socket, name, item)}
-          _ -> {:noreply, socket}
-        end
-    end
-  end
-
-  defp apply_result(socket, {:error, :could_not_update}),
-    do: {:noreply, put_flash(socket, :error, "Could not update item.")}
-
-  def handle_event("task_create", params, socket) do
-    case ForgeWeb.ProjectLive.Tasks.handle_task_create(params, socket.assigns.project.id) do
-      {:ok, result} ->
-        socket =
-          result.assigns
-          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
-
-        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    case AshPhoenix.Form.submit(socket.assigns.task_form.source, params: params) do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
 
         {:noreply,
          socket
-         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> assign(:task_counts, Projects.task_stats(project_id))
+         |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
          |> assign(:tasks_empty?, tasks == [])
          |> assign(:task_form_open?, false)
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
          |> assign(:expanded_task_id, nil)
          |> stream(:tasks, tasks, reset: true)}
 
-      {:error, :blank_title} ->
-        {:noreply, socket}
-
-      {:error, {:changeset, _error}} ->
-        {:noreply, socket}
+      {:error, form} ->
+        {:noreply, assign(socket, :task_form, to_form(form))}
     end
   end
 
-  def handle_event("task_toggle", params, socket) do
+  def handle_event("task_toggle", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
     socket = assign(socket, :expanded_task_id, nil)
 
-    case ForgeWeb.ProjectLive.Tasks.handle_task_toggle(params, socket.assigns.project.id) do
-      {:ok, result} ->
-        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    task = Projects.get_task!(id)
 
-        socket =
-          socket
-          |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-          |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+    case Projects.toggle_task_done(task) do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
 
-        apply_result(socket, {:ok, result})
+        {:noreply,
+         socket
+         |> assign(:task_counts, Projects.task_stats(project_id))
+         |> assign(:tasks_empty?, tasks == [])
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> stream(:tasks, tasks, reset: true)}
 
-      other ->
-        apply_result(socket, other)
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not update task.")}
     end
   end
 
-  def handle_event("task_delete", params, socket) do
+  def handle_event("task_delete", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
     socket = assign(socket, :expanded_task_id, nil)
 
-    apply_result(
-      socket,
-      ForgeWeb.ProjectLive.Tasks.handle_task_delete(params, socket.assigns.project.id)
-    )
+    task = Projects.get_task!(id)
+    {:ok, _} = Projects.delete_task(task)
+
+    tasks = Projects.list_tasks_with_subtasks(project_id)
+
+    {:noreply,
+     socket
+     |> assign(:task_counts, Projects.task_stats(project_id))
+     |> assign(:tasks_empty?, tasks == [])
+     |> stream_delete(:tasks, task)}
   end
 
   def handle_event("task_edit_open", %{"id" => id}, socket) do
     task = Projects.get_task!(id)
-    form = Projects.change_task(task, %{})
+    form = ForgeWeb.ProjectLive.Tasks.task_edit_form(task)
     tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
     {:noreply,
@@ -388,36 +370,33 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> stream(:tasks, tasks, reset: true)}
   end
 
-  def handle_event("task_edit_validate", %{"task_id" => id, "task" => task_params}, socket) do
-    task = Projects.get_task!(id)
-    form = Projects.change_task(task, task_params)
+  def handle_event("task_edit_validate", %{"task_id" => _id, "task" => task_params}, socket) do
+    form =
+      AshPhoenix.Form.validate(socket.assigns.task_edit_form.source, task_params) |> to_form()
+
     {:noreply, assign(socket, :task_edit_form, form)}
   end
 
-  def handle_event("task_edit_save", params, socket) do
+  def handle_event("task_edit_save", %{"task" => params}, socket) do
+    project_id = socket.assigns.project.id
     socket = assign(socket, :expanded_task_id, nil)
 
-    case ForgeWeb.ProjectLive.Tasks.handle_task_update(params, socket.assigns.project.id) do
-      {:ok, result} ->
-        socket =
-          result.assigns
-          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
-
-        tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    case AshPhoenix.Form.submit(socket.assigns.task_edit_form.source, params: params) do
+      {:ok, _task} ->
+        tasks = Projects.list_tasks_with_subtasks(project_id)
 
         {:noreply,
          socket
+         |> assign(:task_counts, Projects.task_stats(project_id))
+         |> assign(:tasks_empty?, tasks == [])
          |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
          |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
          |> assign(:editing_task_id, nil)
          |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
          |> stream(:tasks, tasks, reset: true)}
 
-      {:error, :blank_title} ->
-        {:noreply, socket}
-
-      {:error, {:changeset, _error}} ->
-        {:noreply, socket}
+      {:error, form} ->
+        {:noreply, assign(socket, :task_edit_form, to_form(form))}
     end
   end
 
@@ -575,32 +554,29 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:noreply, assign(socket, :bom_form_open?, !socket.assigns.bom_form_open?)}
   end
 
-  def handle_event("note_create", params, socket) do
+  def handle_event("note_create", %{"note" => params}, socket) do
     project_id = socket.assigns.project.id
 
-    case ForgeWeb.ProjectLive.Notes.handle_note_create(params, project_id) do
-      {:ok, _result} ->
+    params = Map.put(params, "project_id", project_id)
+
+    case AshPhoenix.Form.submit(socket.assigns.note_form.source, params: params) do
+      {:ok, _entry} ->
         note_count = Projects.count_journal_entries(project_id)
         total_pages = max(1, ceil(note_count / @notes_per_page))
         entries = Projects.list_journal_entries_page(project_id, 1, @notes_per_page)
 
-        socket =
-          socket
-          |> assign(:note_count, note_count)
-          |> assign(:note_page, 1)
-          |> assign(:note_total_pages, total_pages)
-          |> assign(:notes_empty?, entries == [])
-          |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
-          |> assign(:note_form_open?, false)
-          |> stream(:journal_entries, entries, reset: true)
+        {:noreply,
+         socket
+         |> assign(:note_count, note_count)
+         |> assign(:note_page, 1)
+         |> assign(:note_total_pages, total_pages)
+         |> assign(:notes_empty?, entries == [])
+         |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
+         |> assign(:note_form_open?, false)
+         |> stream(:journal_entries, entries, reset: true)}
 
-        {:noreply, socket}
-
-      {:error, :blank_body} ->
-        {:noreply, socket}
-
-      {:error, {:changeset, changeset}} ->
-        {:noreply, assign(socket, :note_form, to_form(changeset, as: :note))}
+      {:error, form} ->
+        {:noreply, assign(socket, :note_form, to_form(form))}
     end
   end
 
@@ -640,35 +616,40 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:noreply, socket}
   end
 
-  def handle_event("bom_create", %{"bom" => bom_params}, socket) do
-    case ForgeWeb.ProjectLive.Bom.handle_bom_create(bom_params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket =
-          assigns
-          |> Enum.reduce(socket, fn {k, v}, acc -> assign(acc, k, v) end)
-          |> assign(:bom_form_open?, false)
+  def handle_event("bom_create", %{"bom" => params}, socket) do
+    project_id = socket.assigns.project.id
+    params = Map.put(params, "project_id", project_id)
 
-        {:noreply, socket}
+    case AshPhoenix.Form.submit(socket.assigns.bom_form.source, params: params) do
+      {:ok, _item} ->
+        {:noreply,
+         socket
+         |> assign(:bom_budget, Projects.bom_budget(project_id))
+         |> assign(:bom_form, Components.bom_form())
+         |> assign(:bom_form_open?, false)}
 
-      {:error, {:changeset, _error}} ->
-        {:noreply, socket}
+      {:error, form} ->
+        {:noreply, assign(socket, :bom_form, to_form(form))}
     end
   end
 
-  def handle_event("bom_delete", params, socket) do
-    apply_result(
-      socket,
-      ForgeWeb.ProjectLive.Bom.handle_bom_delete(params, socket.assigns.project.id)
-    )
+  def handle_event("bom_delete", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+    item = Projects.get_bom_item!(id)
+    {:ok, _} = Projects.delete_bom_item(item)
+
+    {:noreply, assign(socket, :bom_budget, Projects.bom_budget(project_id))}
   end
 
-  def handle_event("bom_toggle", params, socket) do
-    case ForgeWeb.ProjectLive.Bom.handle_bom_toggle(params, socket.assigns.project.id) do
-      {:ok, %{assigns: assigns}} ->
-        socket = Enum.reduce(assigns, socket, fn {k, v}, acc -> assign(acc, k, v) end)
-        {:noreply, socket}
+  def handle_event("bom_toggle", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+    item = Projects.get_bom_item!(id)
 
-      {:error, :could_not_update} ->
+    case Projects.toggle_bom_item_status(item) do
+      {:ok, _item} ->
+        {:noreply, assign(socket, :bom_budget, Projects.bom_budget(project_id))}
+
+      {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not update BOM item.")}
     end
   end
@@ -721,16 +702,16 @@ defmodule ForgeWeb.ProjectLive.Show do
   end
 
   def handle_event("budget_update", %{"project" => params}, socket) do
-    case Projects.update_project(socket.assigns.project, params) do
+    case AshPhoenix.Form.submit(socket.assigns.budget_form.source, params: params) do
       {:ok, project} ->
         {:noreply,
          socket
          |> assign(:project, project)
          |> assign(:budget_editing?, false)
-         |> assign(:budget_form, budget_form(project))}
+         |> assign(:budget_form, build_budget_form(project))}
 
-      {:error, _error} ->
-        {:noreply, socket}
+      {:error, form} ->
+        {:noreply, assign(socket, :budget_form, to_form(form))}
     end
   end
 
@@ -744,10 +725,21 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> push_navigate(to: ~p"/projects")}
   end
 
-  @spec budget_form(Forge.Projects.Project.t()) :: Phoenix.HTML.Form.t()
-  defp budget_form(project) do
-    Projects.change_project(project)
+  @spec build_budget_form(Forge.Projects.Project.t()) :: Phoenix.HTML.Form.t()
+  defp build_budget_form(project) do
+    AshPhoenix.Form.for_update(project, :update,
+      domain: Forge.Projects,
+      as: "project"
+    )
+    |> to_form()
   end
+
+  @spec maybe_put_parent_task_id(map(), String.t() | nil | binary()) :: map()
+  defp maybe_put_parent_task_id(params, nil), do: params
+  defp maybe_put_parent_task_id(params, ""), do: params
+
+  defp maybe_put_parent_task_id(params, parent_id),
+    do: Map.put(params, "parent_task_id", parent_id)
 
   @spec budget_display(Decimal.t() | nil) :: String.t()
   defp budget_display(nil), do: "No budget set"

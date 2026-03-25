@@ -25,7 +25,55 @@ defmodule Forge.Projects.Task do
 
     read :read do
       primary? true
-      prepare Forge.Projects.Preparations.SortTasksByPin
+
+      prepare fn query, _context ->
+        require Ash.Expr
+
+        Ash.Query.sort(query, [
+          {Ash.Expr.calc(
+             if pin_status == :current do
+               0
+             else
+               if pin_status == :upcoming do
+                 1
+               else
+                 2
+               end
+             end,
+             type: :integer
+           ), :asc},
+          {:sort_order, :asc},
+          {:inserted_at, :asc}
+        ])
+      end
+    end
+
+    read :by_project do
+      description "Lists all tasks for a given project, sorted by pin then sort_order"
+      argument :project_id, :integer, allow_nil?: false
+
+      filter expr(project_id == ^arg(:project_id))
+
+      prepare fn query, _context ->
+        require Ash.Expr
+
+        Ash.Query.sort(query, [
+          {Ash.Expr.calc(
+             if pin_status == :current do
+               0
+             else
+               if pin_status == :upcoming do
+                 1
+               else
+                 2
+               end
+             end,
+             type: :integer
+           ), :asc},
+          {:sort_order, :asc},
+          {:inserted_at, :asc}
+        ])
+      end
     end
 
     create :create do
@@ -161,8 +209,18 @@ defmodule Forge.Projects.Task do
     end
   end
 
+  calculations do
+    calculate :overdue?,
+              :boolean,
+              expr(not is_nil(due_date) and status != :done and due_date < today())
+  end
+
   aggregates do
     count :subtask_count, :subtasks
+
+    count :done_subtask_count, :subtasks do
+      filter expr(status == :done)
+    end
   end
 
   @type status :: :todo | :in_progress | :done | :blocked

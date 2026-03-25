@@ -2,6 +2,8 @@ defmodule ForgeWeb.ProjectLive.Index do
   use ForgeWeb, :live_view
 
   alias Forge.Projects
+  alias ForgeWeb.ProjectLive.Components.Badges
+  alias ForgeWeb.ProjectLive.Components.Formatting
 
   @status_filters [
     {"All", :all},
@@ -384,14 +386,7 @@ defmodule ForgeWeb.ProjectLive.Index do
   defp status_dot(_), do: "bg-gray-400"
 
   @spec color_bg(Forge.Projects.Project.color()) :: String.t()
-  defp color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
-  defp color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
-  defp color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"
-  defp color_bg(:amber), do: "bg-gradient-to-r from-amber-400 to-amber-600"
-  defp color_bg(:rose), do: "bg-gradient-to-r from-rose-400 to-rose-600"
-  defp color_bg(:orange), do: "bg-gradient-to-r from-orange-400 to-orange-600"
-  defp color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
-  defp color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
+  defp color_bg(color), do: Badges.color_bg(color)
 
   @spec stat_bg(String.t()) :: String.t()
   defp stat_bg("emerald"), do: "bg-emerald-50 dark:bg-emerald-900/20"
@@ -422,9 +417,5 @@ defmodule ForgeWeb.ProjectLive.Index do
   defp stat_text(_), do: "text-gray-700 dark:text-gray-300"
 
   @spec url_display(String.t()) :: String.t()
-  defp url_display(url) do
-    url
-    |> String.replace(~r/^https?:\/\//, "")
-    |> String.replace(~r/\/$/, "")
-  end
+  defp url_display(url), do: Formatting.url_display(url)
 end

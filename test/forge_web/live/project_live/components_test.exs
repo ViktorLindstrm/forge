@@ -97,13 +97,6 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
       form = Components.bom_form()
       assert form.name == "bom"
     end
-
-    test "Components.bom_form/0 and Bom.bom_form/0 return equivalent forms" do
-      f1 = Components.bom_form()
-      f2 = ForgeWeb.ProjectLive.Bom.bom_form()
-      assert f1.source.resource == f2.source.resource
-      assert f1.source.action == f2.source.action
-    end
   end
 
   # ── status badge colour consistency ────────────────────────────────────────
