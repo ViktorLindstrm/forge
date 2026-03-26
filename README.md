@@ -44,15 +44,13 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
-### 1. Download the compose file and generate a secret
+### 1. Download the compose file
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/bin/init-secrets.sh -o init-secrets.sh
-sh init-secrets.sh
 ```
 
-The script generates a `SECRET_KEY_BASE` and saves it to a `.env` file. It is safe to re-run — it will never overwrite an existing secret.
+> **Using a release artifact?** You can also download `docker-compose.prod-release.yml` from the [Releases](../../releases) page and rename it to `docker-compose.yml`.
 
 ### 2. Configure your host
 
@@ -79,7 +77,7 @@ Open `http://your-host-or-ip` in your browser.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SECRET_KEY_BASE` | ✅ | Secret used to sign sessions. Generate with the command above. |
+| `SECRET_KEY_BASE` | | Auto-generated at startup if not set. Can be provided to make sessions persist across container restarts. |
 | `DATABASE_URL` | ✅ | Postgres connection string: `ecto://USER:PASS@HOST/DB` |
 | `PHX_HOST` | ✅ | The hostname or IP used to reach the app externally |
 | `PHX_SCHEME` | | `http` (default) or `https` |
