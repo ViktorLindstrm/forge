@@ -4,6 +4,8 @@ defmodule Forge.Projects.TaskTest do
 
   alias Forge.Projects.Task
 
+  @actions_with_atomic_upgrade [:update, :toggle_done, :pin, :unpin]
+
   @statuses [:todo, :in_progress, :done, :blocked]
   @priorities [:low, :medium, :high]
 
@@ -104,6 +106,17 @@ defmodule Forge.Projects.TaskTest do
 
     test "returns all expected priorities" do
       assert Task.priorities() == @priorities
+    end
+  end
+
+  describe "atomic upgrade configuration" do
+    property "enables atomic_upgrade? for key update actions" do
+      check all(action <- member_of(@actions_with_atomic_upgrade)) do
+        assert %{atomic_upgrade?: true} =
+                 Task
+                 |> Ash.Resource.Info.action(action)
+                 |> Map.take([:atomic_upgrade?])
+      end
     end
   end
 end

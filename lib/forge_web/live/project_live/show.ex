@@ -1,8 +1,11 @@
 defmodule ForgeWeb.ProjectLive.Show do
   use ForgeWeb, :live_view
 
+  alias Ash.Notifier.Notification
   alias Forge.Projects
   alias ForgeWeb.ProjectLive.Components
+
+  require Ash.Query
 
   @notes_per_page 3
 
@@ -240,11 +243,17 @@ defmodule ForgeWeb.ProjectLive.Show do
   def mount(%{"id" => id}, _session, socket) do
     project = Projects.get_project!(id)
 
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Forge.PubSub, "tasks:project:#{project.id}")
+      Phoenix.PubSub.subscribe(Forge.PubSub, "bom_items:project:#{project.id}")
+      Phoenix.PubSub.subscribe(Forge.PubSub, "journal_entries:project:#{project.id}")
+    end
+
     task_counts = Projects.task_stats(project.id)
     tasks = Projects.list_tasks_with_subtasks(project.id)
     note_count = Projects.count_journal_entries(project.id)
     entries = Projects.list_journal_entries_page(project.id, 1, @notes_per_page)
-    total_pages = max(1, ceil(note_count / @notes_per_page))
+    total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
 
     pinned_current_task = Enum.find(tasks, &(&1.pin_status == :current))
     pinned_upcoming_task = Enum.find(tasks, &(&1.pin_status == :upcoming))
@@ -279,6 +288,103 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> stream(:tasks, tasks)
      |> stream(:journal_entries, entries)}
   end
+
+  @impl true
+  def handle_info(
+        %Phoenix.Socket.Broadcast{payload: %Notification{resource: Forge.Projects.Task} = notif},
+        socket
+      ) do
+    handle_info(notif, socket)
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          payload: %Notification{resource: Forge.Projects.BomItem} = notif
+        },
+        socket
+      ) do
+    handle_info(notif, socket)
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          payload: %Notification{resource: Forge.Projects.JournalEntry} = notif
+        },
+        socket
+      ) do
+    handle_info(notif, socket)
+  end
+
+  @impl true
+  def handle_info(
+        %Notification{resource: Forge.Projects.Task, action: action, data: task},
+        socket
+      ) do
+    project_id = socket.assigns.project.id
+
+    ordering_affecting? =
+      action.type not in [:destroy] and
+        MapSet.size(
+          MapSet.intersection(
+            Map.get(action, :touched_attributes, MapSet.new()),
+            MapSet.new([:pin_status, :sort_order, :parent_task_id])
+          )
+        ) > 0
+
+    socket =
+      cond do
+        action.type == :destroy ->
+          socket
+          |> stream_delete(:tasks, task)
+          |> assign(:task_counts, Projects.task_stats(project_id))
+
+        ordering_affecting? ->
+          tasks = Projects.list_tasks_with_subtasks(project_id)
+
+          socket
+          |> assign(:task_counts, Projects.task_stats(project_id))
+          |> assign(:tasks_empty?, tasks == [])
+          |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+          |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+          |> stream(:tasks, tasks, reset: true)
+
+        true ->
+          task =
+            Forge.Projects.Task
+            |> Ash.Query.load(:subtasks)
+            |> Ash.Query.filter(id: task.id)
+            |> Ash.read_one!()
+
+          socket
+          |> stream_insert(:tasks, task)
+          |> assign(:task_counts, Projects.task_stats(project_id))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_info(%Notification{resource: Forge.Projects.BomItem}, socket) do
+    project_id = socket.assigns.project.id
+    {:noreply, assign(socket, :bom_budget, Projects.bom_budget(project_id))}
+  end
+
+  def handle_info(%Notification{resource: Forge.Projects.JournalEntry}, socket) do
+    project_id = socket.assigns.project.id
+    note_count = Projects.count_journal_entries(project_id)
+    total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
+    page = Kernel.min(socket.assigns.note_page, total_pages)
+    entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
+
+    {:noreply,
+     socket
+     |> assign(:note_count, note_count)
+     |> assign(:note_page, page)
+     |> assign(:note_total_pages, total_pages)
+     |> assign(:notes_empty?, entries == [])
+     |> stream(:journal_entries, entries, reset: true)}
+  end
+
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
   def handle_event("task_create", %{"task" => params} = payload, socket) do
     project_id = socket.assigns.project.id
@@ -562,7 +668,7 @@ defmodule ForgeWeb.ProjectLive.Show do
     case AshPhoenix.Form.submit(socket.assigns.note_form.source, params: params) do
       {:ok, _entry} ->
         note_count = Projects.count_journal_entries(project_id)
-        total_pages = max(1, ceil(note_count / @notes_per_page))
+        total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
         entries = Projects.list_journal_entries_page(project_id, 1, @notes_per_page)
 
         {:noreply,
@@ -586,8 +692,8 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:ok, _} = Projects.delete_journal_entry(entry)
 
     note_count = Projects.count_journal_entries(project_id)
-    total_pages = max(1, ceil(note_count / @notes_per_page))
-    page = min(socket.assigns.note_page, total_pages)
+    total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
+    page = Kernel.min(socket.assigns.note_page, total_pages)
     entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
 
     socket =
@@ -603,13 +709,23 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   def handle_event("note_page", %{"page" => page_str}, socket) do
     project_id = socket.assigns.project.id
-    page = String.to_integer(page_str)
-    page = page |> max(1) |> min(socket.assigns.note_total_pages)
+
+    note_count = Projects.count_journal_entries(project_id)
+    total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
+
+    page =
+      page_str
+      |> String.to_integer()
+      |> max(1)
+      |> min(total_pages)
+
     entries = Projects.list_journal_entries_page(project_id, page, @notes_per_page)
 
     socket =
       socket
+      |> assign(:note_count, note_count)
       |> assign(:note_page, page)
+      |> assign(:note_total_pages, total_pages)
       |> assign(:notes_empty?, entries == [])
       |> stream(:journal_entries, entries, reset: true)
 

@@ -1,7 +1,8 @@
 defmodule Forge.Projects.ProjectGroup do
   use Ash.Resource,
     domain: Forge.Projects,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table "project_groups"
@@ -17,6 +18,10 @@ defmodule Forge.Projects.ProjectGroup do
 
     read :read do
       primary? true
+    end
+
+    read :list do
+      description "Lists project groups sorted by name"
       prepare build(sort: [name: :asc])
     end
 
@@ -26,6 +31,12 @@ defmodule Forge.Projects.ProjectGroup do
 
     update :update do
       accept [:name]
+    end
+  end
+
+  policies do
+    policy always() do
+      authorize_if always()
     end
   end
 

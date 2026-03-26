@@ -1,5 +1,6 @@
 import Config
 config :ash, policies: [show_policy_breakdowns?: true]
+config :ash, :pub_sub, debug?: true
 
 # Configure your database
 config :forge, Forge.Repo,

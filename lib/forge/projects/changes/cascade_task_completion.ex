@@ -37,13 +37,12 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
     subtasks =
       Task
       |> Ash.Query.filter(parent_task_id == ^task_id)
-      |> Ash.read!(authorize?: false)
+      |> Ash.read!()
 
     unless subtasks == [] do
       Task
       |> Ash.Query.filter(parent_task_id == ^task_id)
       |> Ash.bulk_update(:update, %{status: status, pin_status: nil},
-        authorize?: false,
         strategy: [:atomic, :stream],
         allow_stream_with: :full_read
       )
@@ -58,12 +57,12 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
   defp update_parent_status(%Task{parent_task_id: nil}), do: :ok
 
   defp update_parent_status(%Task{parent_task_id: parent_id}) do
-    parent = Ash.get!(Task, parent_id, authorize?: false)
+    parent = Ash.get!(Task, parent_id)
 
     siblings =
       Task
       |> Ash.Query.filter(parent_task_id == ^parent_id)
-      |> Ash.read!(authorize?: false)
+      |> Ash.read!()
 
     desired_status =
       if siblings != [] and Enum.all?(siblings, &(&1.status == :done)),
@@ -73,7 +72,7 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
     if parent.status != desired_status do
       parent
       |> Ash.Changeset.for_update(:update, %{status: desired_status, pin_status: nil})
-      |> Ash.update!(authorize?: false)
+      |> Ash.update!()
 
       update_parent_status(parent)
     end

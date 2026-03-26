@@ -1,7 +1,9 @@
 defmodule Forge.Projects.Task do
   use Ash.Resource,
     domain: Forge.Projects,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    notifiers: [Ash.Notifier.PubSub],
+    authorizers: [Ash.Policy.Authorizer]
 
   @statuses [:todo, :in_progress, :done, :blocked]
   @priorities [:low, :medium, :high]
@@ -25,27 +27,6 @@ defmodule Forge.Projects.Task do
 
     read :read do
       primary? true
-
-      prepare fn query, _context ->
-        require Ash.Expr
-
-        Ash.Query.sort(query, [
-          {Ash.Expr.calc(
-             if pin_status == :current do
-               0
-             else
-               if pin_status == :upcoming do
-                 1
-               else
-                 2
-               end
-             end,
-             type: :integer
-           ), :asc},
-          {:sort_order, :asc},
-          {:inserted_at, :asc}
-        ])
-      end
     end
 
     read :by_project do
@@ -90,7 +71,7 @@ defmodule Forge.Projects.Task do
       ]
 
       change {Forge.Projects.Changes.SetNextSortOrder, filter_attribute: :project_id}
-      change Forge.Projects.Changes.ClearPinStatusIfDone
+      change set_attribute(:pin_status, nil), where: attribute_equals(:status, :done)
     end
 
     update :update do
@@ -106,13 +87,16 @@ defmodule Forge.Projects.Task do
       ]
 
       require_atomic? false
-      change Forge.Projects.Changes.ClearPinStatusIfDone
+      atomic_upgrade? true
+
+      change set_attribute(:pin_status, nil), where: attribute_equals(:status, :done)
       change Forge.Projects.Changes.UnpinOtherTasks
     end
 
     update :toggle_done do
       description "Toggles the task between :done and :todo, cascading to subtasks and ancestors"
       require_atomic? false
+      atomic_upgrade? true
 
       change fn changeset, _context ->
         current_status = changeset.data.status
@@ -120,7 +104,7 @@ defmodule Forge.Projects.Task do
         Ash.Changeset.force_change_attribute(changeset, :status, new_status)
       end
 
-      change Forge.Projects.Changes.ClearPinStatusIfDone
+      change set_attribute(:pin_status, nil), where: attribute_equals(:status, :done)
       change Forge.Projects.Changes.CascadeTaskCompletion
     end
 
@@ -128,8 +112,11 @@ defmodule Forge.Projects.Task do
       description "Pins a task as :current or :upcoming (task must not be :done)"
       accept [:pin_status]
       require_atomic? false
+      atomic_upgrade? true
 
-      validate Forge.Projects.Validations.TaskNotDone
+      validate attribute_does_not_equal(:status, :done),
+        message: "cannot pin a done task"
+
       change Forge.Projects.Changes.UnpinOtherTasks
     end
 
@@ -137,6 +124,7 @@ defmodule Forge.Projects.Task do
       description "Removes the pin from a task"
       accept []
       require_atomic? false
+      atomic_upgrade? true
 
       change fn changeset, _context ->
         Ash.Changeset.force_change_attribute(changeset, :pin_status, nil)
@@ -147,6 +135,24 @@ defmodule Forge.Projects.Task do
       description "Updates the sort_order of a task"
       accept [:sort_order]
     end
+  end
+
+  policies do
+    policy always() do
+      authorize_if always()
+    end
+  end
+
+  pub_sub do
+    module ForgeWeb.Endpoint
+
+    broadcast_type :notification
+
+    prefix "tasks"
+
+    publish :create, ["project", :project_id]
+    publish_all :update, ["project", :project_id]
+    publish :destroy, ["project", :project_id]
   end
 
   attributes do

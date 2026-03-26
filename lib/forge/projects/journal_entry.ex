@@ -1,7 +1,9 @@
 defmodule Forge.Projects.JournalEntry do
   use Ash.Resource,
     domain: Forge.Projects,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    notifiers: [Ash.Notifier.PubSub],
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table "journal_entries"
@@ -21,29 +23,16 @@ defmodule Forge.Projects.JournalEntry do
 
     read :read do
       primary? true
-      prepare build(sort: [sort_order: :desc, inserted_at: :desc])
     end
 
     read :by_project do
       description "Lists journal entries for a given project, newest first"
       argument :project_id, :integer, allow_nil?: false
-      argument :page, :integer, allow_nil?: true, default: nil
-      argument :per_page, :integer, allow_nil?: true, default: nil
 
       filter expr(project_id == ^arg(:project_id))
       prepare build(sort: [sort_order: :desc, inserted_at: :desc])
 
-      prepare fn query, _context ->
-        case {Ash.Query.get_argument(query, :page), Ash.Query.get_argument(query, :per_page)} do
-          {page, per_page} when is_integer(page) and is_integer(per_page) ->
-            query
-            |> Ash.Query.limit(per_page)
-            |> Ash.Query.offset((page - 1) * per_page)
-
-          _ ->
-            query
-        end
-      end
+      pagination offset?: true, countable: true, required?: false
     end
 
     create :create do
@@ -54,6 +43,24 @@ defmodule Forge.Projects.JournalEntry do
     update :update do
       accept [:title, :body, :sort_order]
     end
+  end
+
+  policies do
+    policy always() do
+      authorize_if always()
+    end
+  end
+
+  pub_sub do
+    module ForgeWeb.Endpoint
+
+    broadcast_type :notification
+
+    prefix "journal_entries"
+
+    publish :create, ["project", :project_id]
+    publish_all :update, ["project", :project_id]
+    publish :destroy, ["project", :project_id]
   end
 
   attributes do
