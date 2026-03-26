@@ -35,3 +35,6 @@ forge-*.tar
 npm-debug.log
 /assets/node_modules/
 
+-e 
+# Local secrets
+.env

@@ -90,8 +90,10 @@ defmodule Forge.Projects.ProjectTest do
     end
 
     property "rejects names longer than 100 graphemes" do
+      non_whitespace = Enum.concat([?a..?z, ?A..?Z, ?0..?9])
+
       check all(
-              extra <- string(:ascii, min_length: 1, max_length: 100),
+              extra <- string(non_whitespace, min_length: 1, max_length: 100),
               base = String.duplicate("a", 100)
             ) do
         name = base <> extra

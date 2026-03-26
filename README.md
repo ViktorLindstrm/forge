@@ -38,6 +38,57 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 
 ---
 
+## 🚀 Getting started
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+### 1. Download the compose file and generate a secret
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/bin/init-secrets.sh -o init-secrets.sh
+sh init-secrets.sh
+```
+
+The script generates a `SECRET_KEY_BASE` and saves it to a `.env` file. It is safe to re-run — it will never overwrite an existing secret.
+
+### 2. Configure your host
+
+Edit `docker-compose.yml` and set `PHX_HOST` to your server's IP or hostname:
+
+```yaml
+environment:
+  PHX_HOST: "192.168.1.100"   # or e.g. forge.lan
+  PHX_SCHEME: "http"
+  PORT: "80"                  # must match the external port in `ports:`
+```
+
+### 3. Start
+
+```bash
+docker compose up -d
+```
+
+Open `http://your-host-or-ip` in your browser.
+
+---
+
+## ⚙️ Configuration reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SECRET_KEY_BASE` | ✅ | Secret used to sign sessions. Generate with the command above. |
+| `DATABASE_URL` | ✅ | Postgres connection string: `ecto://USER:PASS@HOST/DB` |
+| `PHX_HOST` | ✅ | The hostname or IP used to reach the app externally |
+| `PHX_SCHEME` | | `http` (default) or `https` |
+| `PORT` | | External port (default `4000`). Set to `80` or `443` to omit port from URLs. |
+| `PHX_EXTRA_HOSTS` | | Comma-separated list of additional allowed hostnames, e.g. `localhost,192.168.1.5` |
+| `POOL_SIZE` | | Database connection pool size (default `10`) |
+
+---
+
 ## 🏗️ Architecture
 
 The domain model is built on [Ash Framework](https://ash-hq.org/) resources. An auto-generated entity-relationship diagram is kept up to date in [`docs/architecture.md`](docs/architecture.md).
@@ -60,63 +111,9 @@ The domain model is built on [Ash Framework](https://ash-hq.org/) resources. An 
 
 ---
 
-## 🚀 Getting started
-
-### Prerequisites
-
-- Elixir >= 1.20
-- Erlang/OTP compatible with Elixir 1.20
-- PostgreSQL >= 12
-
-### Local setup
-
-```bash
-# 1. Install dependencies, set up database, build assets, and seed data
-mix setup
-
-# 2. Start the development server
-mix phx.server
-# or with an interactive shell:
-iex -S mix phx.server
-```
-
-Open [`localhost:4000`](http://localhost:4000) in your browser.
-
-### Useful aliases
-
-```bash
-mix ecto.setup       # Create, migrate, and seed the database
-mix ecto.reset       # Drop and re-run ecto.setup
-mix assets.setup     # Install Tailwind and esbuild if missing
-mix assets.build     # Build frontend assets
-mix assets.deploy    # Minify and digest for production
-mix precommit        # Compile (warnings-as-errors), format, test — run before pushing
-```
-
----
-
-## 🧪 Testing
-
-```bash
-mix test
-```
-
-Tests run `ash.setup` automatically via the test alias. Prefer StreamData-driven property tests for domain logic.
-
----
-
-## 🧑‍💻 Developer notes
-
-- **Domain logic belongs in Ash resources** — use actions, validations, changes, and policies. Keep LiveView for presentation and orchestration only.
-- **HTTP calls**: use `Req`. Do not use `:httpoison`, `:tesla`, or `:httpc`.
-- **UI**: use Petal Components; add custom HEEx components only when they complement (not replace) Petal.
-- **Typing**: follow Elixir 1.20 typing conventions; use typespecs where they add clarity.
-
----
-
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on development workflow, coding standards, testing requirements, and the PR process.
+Want to hack on Forge locally? See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a local Elixir development environment, coding standards, and the PR process.
 
 ---
 
