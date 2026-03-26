@@ -31,7 +31,13 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT", "4000"))
   scheme = System.get_env("PHX_SCHEME", "http")
-  url_port = if scheme == "https" && port == 443, do: [], else: [port: port]
+
+  url_port =
+    cond do
+      scheme == "https" && port == 443 -> []
+      scheme == "http" && port == 80 -> []
+      true -> [port: port]
+    end
 
   config :forge, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
