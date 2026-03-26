@@ -44,50 +44,25 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
-### 1. Generate a secret key
+### 1. Download the compose file and generate a secret
 
 ```bash
-docker run --rm ghcr.io/viktorlindstrm/forge:latest eval "IO.puts(:crypto.strong_rand_bytes(48) |> Base.encode64())"
+curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/ViktorLindstrm/forge/main/bin/init-secrets.sh -o init-secrets.sh
+sh init-secrets.sh
 ```
 
-### 2. Create a `docker-compose.yml`
+The script generates a `SECRET_KEY_BASE` and saves it to a `.env` file. It is safe to re-run — it will never overwrite an existing secret.
+
+### 2. Configure your host
+
+Edit `docker-compose.yml` and set `PHX_HOST` to your server's IP or hostname:
 
 ```yaml
-services:
-  db:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: forge
-      POSTGRES_PASSWORD: forge
-      POSTGRES_DB: forge_prod
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U forge"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  app:
-    image: ghcr.io/viktorlindstrm/forge:latest
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "80:4000"
-    environment:
-      PHX_SERVER: "true"
-      PHX_HOST: "your-host-or-ip"   # e.g. 192.168.1.100 or forge.lan
-      PHX_SCHEME: "http"
-      PORT: "80"                     # must match the external port above
-      DATABASE_URL: "ecto://forge:forge@db/forge_prod"
-      SECRET_KEY_BASE: "your-secret-key-base"
-      POOL_SIZE: "10"
-
-volumes:
-  postgres_data:
+environment:
+  PHX_HOST: "192.168.1.100"   # or e.g. forge.lan
+  PHX_SCHEME: "http"
+  PORT: "80"                  # must match the external port in `ports:`
 ```
 
 ### 3. Start
