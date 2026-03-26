@@ -13,7 +13,7 @@ defmodule ForgeWeb.ProjectLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="flex items-center justify-between mb-6">
+      <div class="mb-6">
         <.link
           navigate={~p"/projects"}
           class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -21,30 +21,9 @@ defmodule ForgeWeb.ProjectLive.Show do
         >
           <.icon name="hero-arrow-left" class="size-4" /> Projects
         </.link>
-
-        <div class="flex items-center gap-1">
-          <.link
-            navigate={~p"/projects/#{@project}/edit?return_to=show"}
-            class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            id="project-edit"
-            title="Edit project"
-          >
-            <.icon name="hero-pencil" class="size-4" />
-          </.link>
-
-          <button
-            class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-            phx-click="delete"
-            data-confirm="Delete this project?"
-            id="project-delete"
-            title="Delete project"
-          >
-            <.icon name="hero-trash" class="size-4" />
-          </button>
-        </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-6">
+      <div class="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-6">
         <div class={["h-2", Components.color_bg(@project.color)]} />
         <div class="p-6">
           <div class="flex items-start justify-between gap-4 mb-3">
@@ -54,7 +33,28 @@ defmodule ForgeWeb.ProjectLive.Show do
             >
               {@project.name}
             </h1>
-            <Components.status_badge status={@project.status} />
+            <div class="flex items-center gap-2">
+              <Components.status_badge status={@project.status} />
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <.link
+                  navigate={~p"/projects/#{@project}/edit?return_to=show"}
+                  class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  id="project-card-edit"
+                  title="Edit project"
+                >
+                  <.icon name="hero-pencil" class="size-4" />
+                </.link>
+                <button
+                  class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                  phx-click="delete"
+                  data-confirm="Delete this project?"
+                  id="project-card-delete"
+                  title="Delete project"
+                >
+                  <.icon name="hero-trash" class="size-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div :if={@pinned_current_task || @pinned_upcoming_task} class="mb-4" id="project-pins">
