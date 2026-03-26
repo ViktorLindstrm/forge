@@ -31,7 +31,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
 
     test "returns fallback gray gradient for unknown color" do
       result = Components.color_bg(:unknown)
-      assert result == "bg-gradient-to-r from-gray-300 to-gray-400"
+      assert result == "bg-gradient-to-r from-gray-200 via-gray-400 to-gray-500"
     end
 
     test "returns gradient strings using from-/to- Tailwind classes" do
