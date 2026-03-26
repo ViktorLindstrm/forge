@@ -21,7 +21,8 @@ defmodule Forge.Projects.Changes.UnpinOtherTasks do
           )
           |> Ash.bulk_update(:update, %{pin_status: nil},
             strategy: [:atomic, :stream],
-            allow_stream_with: :full_read
+            allow_stream_with: :full_read,
+            transaction: false
           )
 
           {:ok, task}

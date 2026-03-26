@@ -44,7 +44,8 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
       |> Ash.Query.filter(parent_task_id == ^task_id)
       |> Ash.bulk_update(:update, %{status: status, pin_status: nil},
         strategy: [:atomic, :stream],
-        allow_stream_with: :full_read
+        allow_stream_with: :full_read,
+        transaction: false
       )
 
       Enum.each(subtasks, &cascade_to_subtasks(&1, status))

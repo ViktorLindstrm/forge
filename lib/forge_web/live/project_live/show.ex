@@ -48,7 +48,7 @@ defmodule ForgeWeb.ProjectLive.Show do
                   class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                   phx-click="delete"
                   data-confirm="Delete this project?"
-                  id="project-card-delete"
+                  id="project-delete"
                   title="Delete project"
                 >
                   <.icon name="hero-trash" class="size-4" />

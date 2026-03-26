@@ -55,7 +55,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
 
   defp section_hidden?(html, section_id) do
     Regex.match?(
-      ~r/<[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*id="#{section_id}"|<[^>]*id="#{section_id}"[^>]*class="[^"]*\bhidden\b/,
+      ~r/<[^>]*class="[^"]*(?<![a-z-])hidden(?![a-z-])[^"]*"[^>]*id="#{section_id}"|<[^>]*id="#{section_id}"[^>]*class="[^"]*(?<![a-z-])hidden(?![a-z-])/,
       html
     )
   end
