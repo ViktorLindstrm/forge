@@ -136,7 +136,7 @@ defmodule ForgeWeb.ProjectLive.Components do
             data-subtask-of={task.parent_task_id}
             draggable={if is_nil(task.parent_task_id), do: "true", else: "false"}
             class={[
-              "rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40",
+              "group rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40",
               is_nil(task.parent_task_id) && "px-3 py-2",
               !is_nil(task.parent_task_id) &&
                 "ml-8 border-l border-gray-200 dark:border-gray-800 pl-4 pr-3 py-2"
@@ -244,7 +244,7 @@ defmodule ForgeWeb.ProjectLive.Components do
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-1.5 shrink-0">
+                  <div class="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       :if={task.status != :done and is_nil(task.parent_task_id)}
                       type="button"
@@ -309,7 +309,7 @@ defmodule ForgeWeb.ProjectLive.Components do
 
                 <div
                   :if={@editing_task_id == task.id && is_nil(task.parent_task_id)}
-                  class="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3"
+                  class="mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden"
                   id={"task-edit-wrapper-#{task.id}"}
                 >
                   <.form
@@ -317,51 +317,71 @@ defmodule ForgeWeb.ProjectLive.Components do
                     id={"task-edit-form-#{task.id}"}
                     phx-submit="task_edit_save"
                     phx-change="task_edit_validate"
-                    class="space-y-3"
                   >
                     <input type="hidden" name="task_id" value={task.id} />
-                    <.input field={@task_edit_form[:title]} type="text" label="Task" />
-                    <div class="grid grid-cols-2 gap-3">
-                      <.input
-                        field={@task_edit_form[:priority]}
-                        type="select"
-                        label="Priority"
-                        options={[{"Low", "low"}, {"Medium", "medium"}, {"High", "high"}]}
+                    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                      <.field
+                        field={@task_edit_form[:title]}
+                        type="text"
+                        label="Task"
+                        wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                        label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                        class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
                       />
-                      <.input
-                        field={@task_edit_form[:status]}
-                        type="select"
-                        label="Status"
-                        options={[
-                          {"To do", "todo"},
-                          {"In progress", "in_progress"},
-                          {"Blocked", "blocked"}
-                        ]}
-                      />
-                    </div>
-                    <.input
-                      field={@task_edit_form[:description]}
-                      type="textarea"
-                      label="Description (optional)"
-                      rows={3}
-                    />
-                    <div class="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        phx-click="task_edit_cancel"
-                        class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors"
-                        id={"task-edit-cancel-#{task.id}"}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        phx-disable-with="Saving…"
-                        class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-50"
-                        id={"task-edit-save-#{task.id}"}
-                      >
-                        Save
-                      </button>
+                      <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+                        <.field
+                          field={@task_edit_form[:priority]}
+                          type="select"
+                          label="Priority"
+                          options={[{"Low", "low"}, {"Medium", "medium"}, {"High", "high"}]}
+                          wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                          label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                          class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                        />
+                        <.field
+                          field={@task_edit_form[:status]}
+                          type="select"
+                          label="Status"
+                          options={[
+                            {"To do", "todo"},
+                            {"In progress", "in_progress"},
+                            {"Blocked", "blocked"}
+                          ]}
+                          wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                          label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                          class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                        />
+                      </div>
+                      <div class="flex items-start gap-3 px-3 py-2">
+                        <label class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Description
+                        </label>
+                        <textarea
+                          name={@task_edit_form[:description].name}
+                          id={@task_edit_form[:description].id}
+                          rows="1"
+                          placeholder="Details, context, links…"
+                          class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
+                        >{Phoenix.HTML.Form.normalize_value("textarea", @task_edit_form[:description].value)}</textarea>
+                        <div class="shrink-0 self-end flex items-center gap-3 border-l border-gray-200 dark:border-gray-700 pl-3">
+                          <button
+                            type="button"
+                            phx-click="task_edit_cancel"
+                            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            id={"task-edit-cancel-#{task.id}"}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            phx-disable-with="Saving…"
+                            class="text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50"
+                            id={"task-edit-save-#{task.id}"}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </.form>
                 </div>
@@ -385,41 +405,47 @@ defmodule ForgeWeb.ProjectLive.Components do
                 is_nil(task.parent_task_id) and
                   to_string(@subtask_form_task_id) == to_string(task.id)
               }
-              class="ml-8 mt-2 border-l border-gray-200 dark:border-gray-800 pl-4"
+              class="ml-8 mt-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden"
               id={"subtask-form-wrapper-#{task.id}"}
             >
               <.form
                 for={@task_form}
                 id={"subtask-quick-form-#{task.id}"}
                 phx-submit="task_create"
-                class="flex items-center gap-2"
               >
                 <input type="hidden" name="parent_task_id" value={task.id} />
                 <input type="hidden" name="task[title]" value="" />
-                <.input
-                  field={@task_form[:title]}
-                  type="text"
-                  placeholder="Add subtask"
-                  label=""
-                  phx-debounce="200"
-                  id={"subtask-title-#{task.id}"}
-                />
-                <button
-                  type="submit"
-                  class="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors"
-                  id={"subtask-add-#{task.id}"}
-                >
-                  Add
-                </button>
-                <button
-                  type="button"
-                  phx-click="subtask_form_close"
-                  phx-value-id={task.id}
-                  class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-900 transition-colors"
-                  id={"subtask-cancel-#{task.id}"}
-                >
-                  Cancel
-                </button>
+                <div class="flex items-center gap-3 px-3 py-2">
+                  <label class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Subtask
+                  </label>
+                  <input
+                    type="text"
+                    name={@task_form[:title].name}
+                    id={"subtask-title-#{task.id}"}
+                    placeholder="Add subtask…"
+                    phx-debounce="200"
+                    class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 text-gray-900 dark:text-white"
+                  />
+                  <div class="shrink-0 flex items-center gap-3 border-l border-gray-200 dark:border-gray-700 pl-3">
+                    <button
+                      type="button"
+                      phx-click="subtask_form_close"
+                      phx-value-id={task.id}
+                      class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                      id={"subtask-cancel-#{task.id}"}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors"
+                      id={"subtask-add-#{task.id}"}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
               </.form>
             </div>
           </div>
@@ -437,44 +463,62 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div :if={@task_form_open?} id="task-form-wrapper" class="mt-4">
-          <.form for={@task_form} id="task-quick-form" phx-submit="task_create" class="space-y-3">
-            <.input
-              field={@task_form[:title]}
-              type="text"
-              placeholder="What's the next step?"
-              label="Task"
-            />
-            <div class="grid grid-cols-2 gap-3">
-              <.input
-                field={@task_form[:priority]}
-                type="select"
-                label="Priority"
-                options={[{"Low", "low"}, {"Medium", "medium"}, {"High", "high"}]}
+        <div
+          :if={@task_form_open?}
+          id="task-form-wrapper"
+          class="mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden"
+        >
+          <.form for={@task_form} id="task-quick-form" phx-submit="task_create">
+            <div class="divide-y divide-gray-100 dark:divide-gray-800">
+              <.field
+                field={@task_form[:title]}
+                type="text"
+                label="Task"
+                placeholder="What's the next step?"
+                wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
-              <.input
-                field={@task_form[:status]}
-                type="select"
-                label="Status"
-                options={[{"To do", "todo"}, {"In progress", "in_progress"}, {"Blocked", "blocked"}]}
-              />
-            </div>
-            <.input
-              field={@task_form[:description]}
-              type="textarea"
-              placeholder="Details, context, acceptance criteria, links…"
-              label="Description (optional)"
-              rows={3}
-            />
-            <div class="flex justify-end">
-              <button
-                type="submit"
-                phx-disable-with="Adding…"
-                class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-50"
-                id="task-quick-add"
-              >
-                Add task
-              </button>
+              <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+                <.field
+                  field={@task_form[:priority]}
+                  type="select"
+                  label="Priority"
+                  options={[{"Low", "low"}, {"Medium", "medium"}, {"High", "high"}]}
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                />
+                <.field
+                  field={@task_form[:status]}
+                  type="select"
+                  label="Status"
+                  options={[{"To do", "todo"}, {"In progress", "in_progress"}, {"Blocked", "blocked"}]}
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                />
+              </div>
+              <div class="flex items-start gap-3 px-3 py-2">
+                <label class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Description
+                </label>
+                <textarea
+                  name={@task_form[:description].name}
+                  id={@task_form[:description].id}
+                  rows="1"
+                  placeholder="Details, context, links…"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
+                >{Phoenix.HTML.Form.normalize_value("textarea", @task_form[:description].value)}</textarea>
+                <button
+                  type="submit"
+                  phx-disable-with="Adding…"
+                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
+                  id="task-quick-add"
+                >
+                  Add
+                </button>
+              </div>
             </div>
           </.form>
         </div>
@@ -557,7 +601,7 @@ defmodule ForgeWeb.ProjectLive.Components do
         <div :if={@bom_budget.items != []} class="space-y-2" id="bom-list">
           <div
             :for={item <- @bom_budget.items}
-            class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
+            class="group rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
             id={"bom-item-#{item.id}"}
           >
             <div class="flex items-start justify-between gap-3">
@@ -590,7 +634,7 @@ defmodule ForgeWeb.ProjectLive.Components do
                   phx-click="bom_delete"
                   phx-value-id={item.id}
                   data-confirm="Delete this item?"
-                  class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                  class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
                   aria-label="Delete item"
                   id={"bom-delete-#{item.id}"}
                 >
@@ -613,65 +657,92 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div :if={@bom_form_open?} id="bom-form-wrapper" class="mt-4">
-          <.form for={@bom_form} id="bom-quick-form" phx-submit="bom_create" class="space-y-3">
-            <.field
-              field={@bom_form[:name]}
-              type="text"
-              label="Item name"
-              placeholder="e.g. Arduino Uno"
-            />
-            <div class="grid grid-cols-2 gap-3">
+        <div
+          :if={@bom_form_open?}
+          id="bom-form-wrapper"
+          class="mt-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden"
+        >
+          <.form for={@bom_form} id="bom-quick-form" phx-submit="bom_create">
+            <div class="divide-y divide-gray-100 dark:divide-gray-800">
               <.field
-                field={@bom_form[:quantity]}
-                type="number"
-                label="Quantity (how many)"
-                placeholder="1"
-                wrapper_class="!mb-0"
-              />
-              <.field
-                field={@bom_form[:unit]}
+                field={@bom_form[:name]}
                 type="text"
-                label="Unit of measure"
-                placeholder="e.g. pcs, m, kg"
-                wrapper_class="!mb-0"
+                label="Name"
+                placeholder="e.g. Arduino Uno"
+                wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
-            </div>
-            <.field
-              field={@bom_form[:unit_price]}
-              type="number"
-              step="0.01"
-              label="Unit price in SEK (cost per unit)"
-              placeholder="e.g. 49.99"
-            />
-            <.field
-              field={@bom_form[:supplier]}
-              type="text"
-              label="Supplier (where to buy)"
-              placeholder="e.g. Mouser, Digikey"
-            />
-            <.field
-              field={@bom_form[:link]}
-              type="text"
-              label="Product link (URL to item)"
-              placeholder="https://…"
-            />
-            <.field
-              field={@bom_form[:notes]}
-              type="textarea"
-              label="Notes (any extra info)"
-              rows="2"
-              placeholder="e.g. check lead time, substitute ok"
-            />
-            <div class="flex justify-end">
-              <button
-                type="submit"
-                phx-disable-with="Adding…"
-                class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-50"
-                id="bom-quick-add"
-              >
-                Add item
-              </button>
+              <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800">
+                <.field
+                  field={@bom_form[:quantity]}
+                  type="number"
+                  label="Qty"
+                  placeholder="1"
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+                <.field
+                  field={@bom_form[:unit]}
+                  type="text"
+                  label="Unit"
+                  placeholder="pcs, m, kg"
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+                <.field
+                  field={@bom_form[:unit_price]}
+                  type="number"
+                  step="0.01"
+                  label="Price"
+                  placeholder="49.99"
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+              <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+                <.field
+                  field={@bom_form[:supplier]}
+                  type="text"
+                  label="Supplier"
+                  placeholder="Mouser, Digikey…"
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-14 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+                <.field
+                  field={@bom_form[:link]}
+                  type="text"
+                  label="Link"
+                  placeholder="https://…"
+                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                  label_class="w-14 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+              <div class="flex items-start gap-3 px-3 py-2">
+                <label class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Notes
+                </label>
+                <textarea
+                  name={@bom_form[:notes].name}
+                  id={@bom_form[:notes].id}
+                  rows="1"
+                  placeholder="Lead time, substitutes, extra info…"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
+                >{Phoenix.HTML.Form.normalize_value("textarea", @bom_form[:notes].value)}</textarea>
+                <button
+                  type="submit"
+                  phx-disable-with="Adding…"
+                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
+                  id="bom-quick-add"
+                >
+                  Add
+                </button>
+              </div>
             </div>
           </.form>
         </div>
@@ -736,7 +807,7 @@ defmodule ForgeWeb.ProjectLive.Components do
           <div
             :for={{id, entry} <- @streams.journal_entries}
             id={id}
-            class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
+            class="group rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -755,7 +826,7 @@ defmodule ForgeWeb.ProjectLive.Components do
                 phx-click="note_delete"
                 phx-value-id={entry.id}
                 data-confirm="Delete this note?"
-                class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
                 aria-label="Delete note"
                 id={"note-delete-#{entry.id}"}
               >
@@ -800,19 +871,44 @@ defmodule ForgeWeb.ProjectLive.Components do
           </button>
         </div>
 
-        <div id="note-form-wrapper" class={["mt-4", if(@note_form_open?, do: "", else: "hidden")]}>
-          <.form for={@note_form} id="note-quick-form" phx-submit="note_create" class="space-y-3">
-            <.input field={@note_form[:title]} type="text" label="Title (optional)" />
-            <.input field={@note_form[:body]} type="textarea" label="Body" rows={4} />
-            <div class="flex justify-end">
-              <button
-                type="submit"
-                phx-disable-with="Adding…"
-                class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-50"
-                id="note-quick-add"
-              >
-                Add note
-              </button>
+        <div
+          id="note-form-wrapper"
+          class={[
+            "mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden",
+            if(@note_form_open?, do: "", else: "hidden")
+          ]}
+        >
+          <.form for={@note_form} id="note-quick-form" phx-submit="note_create">
+            <div class="divide-y divide-gray-100 dark:divide-gray-800">
+              <.field
+                field={@note_form[:title]}
+                type="text"
+                label="Title"
+                placeholder="Optional title…"
+                wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+              />
+              <div class="flex items-start gap-3 px-3 py-2">
+                <label class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Body
+                </label>
+                <textarea
+                  name={@note_form[:body].name}
+                  id={@note_form[:body].id}
+                  rows="1"
+                  placeholder="Write your note…"
+                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
+                >{Phoenix.HTML.Form.normalize_value("textarea", @note_form[:body].value)}</textarea>
+                <button
+                  type="submit"
+                  phx-disable-with="Adding…"
+                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
+                  id="note-quick-add"
+                >
+                  Add
+                </button>
+              </div>
             </div>
           </.form>
         </div>
