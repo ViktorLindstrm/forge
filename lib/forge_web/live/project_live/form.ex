@@ -244,14 +244,14 @@ defmodule ForgeWeb.ProjectLive.Form do
   end
 
   @impl true
-  def handle_event("validate", %{"project" => params}, socket) do
+  def handle_event("validate", %{"form" => params}, socket) do
     form =
       AshPhoenix.Form.validate(socket.assigns.form.source, params) |> to_form()
 
     {:noreply, assign(socket, form: form)}
   end
 
-  def handle_event("save", %{"project" => params}, socket) do
+  def handle_event("save", %{"form" => params}, socket) do
     save_project(socket, socket.assigns.live_action, params)
   end
 
