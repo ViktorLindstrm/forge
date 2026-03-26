@@ -24,7 +24,8 @@ services:
       - "5000:4000"
     environment:
       PHX_SERVER: "true"
-      PHX_HOST: "localhost"
+      PHX_HOST: "forge.lan"
+      PHX_EXTRA_HOSTS: "localhost"
       PORT: "4000"
       DATABASE_URL: "ecto://forge:forge@db/forge_prod"
       SECRET_KEY_BASE: "${SECRET_KEY_BASE}"

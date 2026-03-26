@@ -35,10 +35,20 @@ if config_env() == :prod do
 
   config :forge, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  extra_hosts =
+    System.get_env("PHX_EXTRA_HOSTS", "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+
+  allowed_origins =
+    (["//#{host}"] ++ Enum.map(extra_hosts, &"//#{&1}"))
+    |> Enum.uniq()
+
   config :forge, ForgeWeb.Endpoint,
     url: [host: host, scheme: scheme] ++ url_port,
     http: [
       ip: {0, 0, 0, 0, 0, 0, 0, 0}
     ],
+    check_origin: allowed_origins,
     secret_key_base: secret_key_base
 end
