@@ -1,7 +1,8 @@
 defmodule Forge.Projects.Project do
   use Ash.Resource,
     domain: Forge.Projects,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   @statuses [:idea, :active, :paused, :done]
   @colors [:blue, :violet, :emerald, :amber, :rose, :orange, :sky]
@@ -24,6 +25,10 @@ defmodule Forge.Projects.Project do
 
     read :read do
       primary? true
+    end
+
+    read :list do
+      description "Lists projects sorted by status then name"
 
       prepare fn query, _context ->
         require Ash.Expr
@@ -69,6 +74,12 @@ defmodule Forge.Projects.Project do
         :budget,
         :project_group_id
       ]
+    end
+  end
+
+  policies do
+    policy always() do
+      authorize_if always()
     end
   end
 

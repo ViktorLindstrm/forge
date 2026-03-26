@@ -41,7 +41,9 @@ defmodule Forge.Projects do
 
   @spec list_project_groups() :: [ProjectGroup.t()]
   def list_project_groups do
-    Ash.read!(ProjectGroup)
+    ProjectGroup
+    |> Ash.Query.for_read(:list, %{})
+    |> Ash.read!()
   end
 
   @spec create_project_group(map()) :: {:ok, ProjectGroup.t()} | {:error, Ash.Error.t()}
@@ -65,6 +67,7 @@ defmodule Forge.Projects do
   @spec list_projects() :: [Project.t()]
   def list_projects do
     Project
+    |> Ash.Query.for_read(:list, %{})
     |> Ash.Query.load([:current_task, :upcoming_task, :project_group])
     |> Ash.read!()
   end
@@ -207,35 +210,58 @@ defmodule Forge.Projects do
 
   @spec task_stats(project_id()) :: task_stats()
   def task_stats(project_id) do
-    aggregates =
-      Enum.map(Task.statuses(), fn status ->
-        Ash.Query.Aggregate.new!(Task, :"count_#{status}", :count,
-          query: [filter: [status: status, project_id: project_id]],
-          default: 0
-        )
-      end)
-
-    {:ok, result} = Ash.aggregate(Task, aggregates)
+    query =
+      Task
+      |> Ash.Query.filter(project_id == ^project_id)
 
     Enum.into(Task.statuses(), %{}, fn status ->
-      {status, Map.get(result, :"count_#{status}", 0)}
+      count =
+        query
+        |> Ash.Query.filter(status == ^status)
+        |> Ash.count!()
+
+      {status, count}
     end)
   end
 
-  @spec reorder_tasks(project_id(), [Ecto.UUID.t()]) :: :ok
-  def reorder_tasks(_project_id, ordered_ids), do: apply_sort_orders(ordered_ids)
+  @spec reorder_tasks(project_id(), [Ecto.UUID.t() | String.t()]) :: :ok
+  def reorder_tasks(_project_id, ordered_ids), do: bulk_apply_sort_orders(ordered_ids)
 
-  @spec reorder_subtasks(Ecto.UUID.t(), [Ecto.UUID.t()]) :: :ok
-  def reorder_subtasks(_parent_task_id, ordered_ids), do: apply_sort_orders(ordered_ids)
+  @spec reorder_subtasks(Ecto.UUID.t(), [Ecto.UUID.t() | String.t()]) :: :ok
+  def reorder_subtasks(_parent_task_id, ordered_ids), do: bulk_apply_sort_orders(ordered_ids)
 
-  @spec apply_sort_orders([Ecto.UUID.t()]) :: :ok
-  defp apply_sort_orders(ordered_ids) when is_list(ordered_ids) do
-    ordered_ids
-    |> Enum.with_index(1)
-    |> Enum.each(fn {id, sort_order} ->
-      Ash.get!(Task, id)
-      |> Ash.Changeset.for_update(:reorder, %{sort_order: sort_order})
-      |> Ash.update!(authorize?: false)
+  @spec bulk_apply_sort_orders([Ecto.UUID.t() | String.t()]) :: :ok
+  defp bulk_apply_sort_orders([]), do: :ok
+
+  defp bulk_apply_sort_orders(ordered_ids) when is_list(ordered_ids) do
+    Forge.Repo.transaction(fn ->
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      params =
+        ordered_ids
+        |> Enum.with_index(1)
+        |> Enum.map(fn {id, sort_order} ->
+          %{id: Ecto.UUID.dump!(id), sort_order: sort_order}
+        end)
+
+      values = Enum.with_index(params, 1)
+
+      set_status =
+        Enum.map_join(values, " ", fn {_row, i} ->
+          "WHEN id = $#{2 * i - 1}::uuid THEN $#{2 * i}::int"
+        end)
+
+      ids_in =
+        Enum.map_join(values, ", ", fn {_row, i} -> "$#{2 * i - 1}::uuid" end)
+
+      args =
+        params
+        |> Enum.flat_map(fn %{id: id, sort_order: sort_order} -> [id, sort_order] end)
+
+      query =
+        "UPDATE tasks SET sort_order = CASE #{set_status} ELSE sort_order END, updated_at = $#{length(args) + 1} WHERE id IN (#{ids_in})"
+
+      Ecto.Adapters.SQL.query!(Forge.Repo, query, args ++ [now])
     end)
 
     :ok
@@ -310,9 +336,12 @@ defmodule Forge.Projects do
   @spec list_journal_entries_page(project_id(), pos_integer(), pos_integer()) ::
           [JournalEntry.t()]
   def list_journal_entries_page(project_id, page, per_page) do
-    JournalEntry
-    |> Ash.Query.for_read(:by_project, %{project_id: project_id, page: page, per_page: per_page})
-    |> Ash.read!()
+    result =
+      JournalEntry
+      |> Ash.Query.for_read(:by_project, %{project_id: project_id})
+      |> Ash.read!(page: [offset: (page - 1) * per_page, limit: per_page])
+
+    result.results
   end
 
   @spec count_journal_entries(project_id()) :: non_neg_integer()

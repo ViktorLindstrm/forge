@@ -20,7 +20,6 @@ defmodule Forge.Projects.Changes.UnpinOtherTasks do
               id != ^task_id
           )
           |> Ash.bulk_update(:update, %{pin_status: nil},
-            authorize?: false,
             strategy: [:atomic, :stream],
             allow_stream_with: :full_read
           )

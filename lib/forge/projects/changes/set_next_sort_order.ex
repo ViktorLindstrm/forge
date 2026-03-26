@@ -28,10 +28,7 @@ defmodule Forge.Projects.Changes.SetNextSortOrder do
       max_order =
         changeset.resource
         |> Ash.Query.filter(^[{filter_attr, filter_value}])
-        |> Ash.Query.select([:sort_order])
-        |> Ash.read!(authorize?: false)
-        |> Enum.map(& &1.sort_order)
-        |> Enum.max(fn -> 0 end)
+        |> Ash.max!(:sort_order) || 0
 
       Ash.Changeset.force_change_attribute(changeset, :sort_order, max_order + 1)
     end

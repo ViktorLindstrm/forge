@@ -56,6 +56,7 @@ defmodule Forge.MixProject do
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
+      {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.3", only: :dev},
       {:petal_components, "~> 3.0"},
       {:lazy_html, ">= 0.1.0", only: :test},

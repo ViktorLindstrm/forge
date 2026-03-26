@@ -1,7 +1,9 @@
 defmodule Forge.Projects.BomItem do
   use Ash.Resource,
     domain: Forge.Projects,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    notifiers: [Ash.Notifier.PubSub],
+    authorizers: [Ash.Policy.Authorizer]
 
   @statuses [:needed, :ordered, :received]
 
@@ -23,7 +25,6 @@ defmodule Forge.Projects.BomItem do
 
     read :read do
       primary? true
-      prepare build(sort: [sort_order: :asc, inserted_at: :asc])
     end
 
     read :by_project do
@@ -82,6 +83,24 @@ defmodule Forge.Projects.BomItem do
         Ash.Changeset.force_change_attribute(changeset, :status, new_status)
       end
     end
+  end
+
+  policies do
+    policy always() do
+      authorize_if always()
+    end
+  end
+
+  pub_sub do
+    module ForgeWeb.Endpoint
+
+    broadcast_type :notification
+
+    prefix "bom_items"
+
+    publish :create, ["project", :project_id]
+    publish_all :update, ["project", :project_id]
+    publish :destroy, ["project", :project_id]
   end
 
   validations do
