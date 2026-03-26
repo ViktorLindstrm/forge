@@ -54,6 +54,8 @@ sh init-secrets.sh
 
 The script generates a `SECRET_KEY_BASE` and saves it to a `.env` file. It is safe to re-run — it will never overwrite an existing secret.
 
+> **Using a release artifact?** If you downloaded `docker-compose.prod-release.yml` from the [Releases](../../releases) page, rename it to `docker-compose.yml` and still run `init-secrets.sh` above to generate the required `.env` file before starting.
+
 ### 2. Configure your host
 
 Edit `docker-compose.yml` and set `PHX_HOST` to your server's IP or hostname:
