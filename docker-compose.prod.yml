@@ -27,5 +27,5 @@ services:
       PHX_HOST: "192.168.1.x"
       PORT: "4000"
       DATABASE_URL: "ecto://forge:forge@db/forge_prod"
-      SECRET_KEY_BASE: "replace-with-output-of-mix-phx.gen.secret"
+      SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
       POOL_SIZE: "10"
