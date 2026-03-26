@@ -28,7 +28,6 @@ services:
       PHX_EXTRA_HOSTS: "localhost"
       PORT: "4000"
       DATABASE_URL: "ecto://forge:forge@db/forge_prod"
-      SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
       POOL_SIZE: "10"
 
 volumes:
