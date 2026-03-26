@@ -38,6 +38,82 @@ Forge is a Phoenix LiveView application for managing projects, tasks, bills-of-m
 
 ---
 
+## 🚀 Getting started
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+### 1. Generate a secret key
+
+```bash
+docker run --rm ghcr.io/viktorlindstrm/forge:latest eval "IO.puts(:crypto.strong_rand_bytes(48) |> Base.encode64())"
+```
+
+### 2. Create a `docker-compose.yml`
+
+```yaml
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge
+      POSTGRES_DB: forge_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ghcr.io/viktorlindstrm/forge:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "80:4000"
+    environment:
+      PHX_SERVER: "true"
+      PHX_HOST: "your-host-or-ip"   # e.g. 192.168.1.100 or forge.lan
+      PHX_SCHEME: "http"
+      PORT: "80"                     # must match the external port above
+      DATABASE_URL: "ecto://forge:forge@db/forge_prod"
+      SECRET_KEY_BASE: "your-secret-key-base"
+      POOL_SIZE: "10"
+
+volumes:
+  postgres_data:
+```
+
+### 3. Start
+
+```bash
+docker compose up -d
+```
+
+Open `http://your-host-or-ip` in your browser.
+
+---
+
+## ⚙️ Configuration reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SECRET_KEY_BASE` | ✅ | Secret used to sign sessions. Generate with the command above. |
+| `DATABASE_URL` | ✅ | Postgres connection string: `ecto://USER:PASS@HOST/DB` |
+| `PHX_HOST` | ✅ | The hostname or IP used to reach the app externally |
+| `PHX_SCHEME` | | `http` (default) or `https` |
+| `PORT` | | External port (default `4000`). Set to `80` or `443` to omit port from URLs. |
+| `PHX_EXTRA_HOSTS` | | Comma-separated list of additional allowed hostnames, e.g. `localhost,192.168.1.5` |
+| `POOL_SIZE` | | Database connection pool size (default `10`) |
+
+---
+
 ## 🏗️ Architecture
 
 The domain model is built on [Ash Framework](https://ash-hq.org/) resources. An auto-generated entity-relationship diagram is kept up to date in [`docs/architecture.md`](docs/architecture.md).
@@ -60,63 +136,9 @@ The domain model is built on [Ash Framework](https://ash-hq.org/) resources. An 
 
 ---
 
-## 🚀 Getting started
-
-### Prerequisites
-
-- Elixir >= 1.20
-- Erlang/OTP compatible with Elixir 1.20
-- PostgreSQL >= 12
-
-### Local setup
-
-```bash
-# 1. Install dependencies, set up database, build assets, and seed data
-mix setup
-
-# 2. Start the development server
-mix phx.server
-# or with an interactive shell:
-iex -S mix phx.server
-```
-
-Open [`localhost:4000`](http://localhost:4000) in your browser.
-
-### Useful aliases
-
-```bash
-mix ecto.setup       # Create, migrate, and seed the database
-mix ecto.reset       # Drop and re-run ecto.setup
-mix assets.setup     # Install Tailwind and esbuild if missing
-mix assets.build     # Build frontend assets
-mix assets.deploy    # Minify and digest for production
-mix precommit        # Compile (warnings-as-errors), format, test — run before pushing
-```
-
----
-
-## 🧪 Testing
-
-```bash
-mix test
-```
-
-Tests run `ash.setup` automatically via the test alias. Prefer StreamData-driven property tests for domain logic.
-
----
-
-## 🧑‍💻 Developer notes
-
-- **Domain logic belongs in Ash resources** — use actions, validations, changes, and policies. Keep LiveView for presentation and orchestration only.
-- **HTTP calls**: use `Req`. Do not use `:httpoison`, `:tesla`, or `:httpc`.
-- **UI**: use Petal Components; add custom HEEx components only when they complement (not replace) Petal.
-- **Typing**: follow Elixir 1.20 typing conventions; use typespecs where they add clarity.
-
----
-
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on development workflow, coding standards, testing requirements, and the PR process.
+Want to hack on Forge locally? See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a local Elixir development environment, coding standards, and the PR process.
 
 ---
 
