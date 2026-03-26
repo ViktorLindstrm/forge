@@ -41,14 +41,14 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
   defp status_dot(_), do: "bg-gray-400"
 
   @spec color_bg(Forge.Projects.Project.color()) :: String.t()
-  def color_bg(:blue), do: "bg-gradient-to-r from-blue-400 to-blue-600"
-  def color_bg(:violet), do: "bg-gradient-to-r from-violet-400 to-violet-600"
-  def color_bg(:emerald), do: "bg-gradient-to-r from-emerald-400 to-emerald-600"
-  def color_bg(:amber), do: "bg-gradient-to-r from-amber-400 to-amber-600"
-  def color_bg(:rose), do: "bg-gradient-to-r from-rose-400 to-rose-600"
-  def color_bg(:orange), do: "bg-gradient-to-r from-orange-400 to-orange-600"
-  def color_bg(:sky), do: "bg-gradient-to-r from-sky-400 to-sky-600"
-  def color_bg(_), do: "bg-gradient-to-r from-gray-300 to-gray-400"
+  def color_bg(:blue), do: "bg-gradient-to-r from-blue-300 via-blue-500 to-blue-600"
+  def color_bg(:violet), do: "bg-gradient-to-r from-violet-300 via-violet-500 to-violet-600"
+  def color_bg(:emerald), do: "bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-600"
+  def color_bg(:amber), do: "bg-gradient-to-r from-amber-300 via-amber-500 to-amber-600"
+  def color_bg(:rose), do: "bg-gradient-to-r from-rose-300 via-rose-500 to-rose-600"
+  def color_bg(:orange), do: "bg-gradient-to-r from-orange-300 via-orange-500 to-orange-600"
+  def color_bg(:sky), do: "bg-gradient-to-r from-sky-300 via-sky-500 to-sky-600"
+  def color_bg(_), do: "bg-gradient-to-r from-gray-200 via-gray-400 to-gray-500"
 
   @spec url_display(String.t()) :: String.t()
   defdelegate url_display(url), to: ForgeWeb.ProjectLive.Components.Formatting

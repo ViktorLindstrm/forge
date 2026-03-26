@@ -134,7 +134,12 @@ defmodule ForgeWeb.ProjectLive.Index do
           </span>
         </div>
       <% else %>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          id={"project-grid-#{group_section_id(@group)}"}
+          phx-hook="ProjectSortable"
+          data-group-id={group_section_id(@group)}
+        >
           <.project_card
             :for={project <- @visible_projects}
             id={"projects-#{project.id}"}
@@ -153,7 +158,9 @@ defmodule ForgeWeb.ProjectLive.Index do
     ~H"""
     <div
       id={@id}
-      class="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 flex flex-col gap-3 cursor-pointer"
+      data-project-id={@project.id}
+      draggable="true"
+      class="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 flex flex-col gap-3 cursor-pointer select-none"
       phx-click={JS.navigate(~p"/projects/#{@project}")}
     >
       <%!-- Color accent bar --%>
@@ -338,6 +345,13 @@ defmodule ForgeWeb.ProjectLive.Index do
 
     group_filters = Map.put(socket.assigns.group_filters, key, status)
     {:noreply, assign(socket, :group_filters, group_filters)}
+  end
+
+  @impl true
+  def handle_event("projects_reorder", %{"ids" => ids}, socket) do
+    :ok = Projects.reorder_projects(ids)
+    grouped = Projects.list_projects_grouped()
+    {:noreply, assign(socket, :grouped_projects, grouped)}
   end
 
   def handle_event("delete", %{"id" => id}, socket) do

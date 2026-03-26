@@ -96,6 +96,27 @@ defmodule Forge.Projects do
     end
   end
 
+  @spec reorder_projects([pos_integer() | String.t()]) :: :ok
+  def reorder_projects(ordered_ids) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    Forge.Repo.transaction(fn ->
+      ordered_ids
+      |> Enum.with_index(1)
+      |> Enum.each(fn {id, sort_order} ->
+        parsed_id = if is_binary(id), do: String.to_integer(id), else: id
+
+        Ecto.Adapters.SQL.query!(
+          Forge.Repo,
+          "UPDATE projects SET sort_order = $1, updated_at = $2 WHERE id = $3",
+          [sort_order, now, parsed_id]
+        )
+      end)
+    end)
+
+    :ok
+  end
+
   @spec get_project!(project_id()) :: Project.t()
   def get_project!(id), do: Ash.get!(Project, id)
 
