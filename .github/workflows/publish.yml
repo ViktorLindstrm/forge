@@ -57,13 +57,6 @@ jobs:
       - name: Build release body with architecture diagram
         id: release_body
         run: |
-          DIAGRAM_CONTENT=$(cat docs/architecture.md)
-          BODY=$(cat <<'RELEASE_BODY'
-## 🏗️ Architecture Diagram
-
-${DIAGRAM_CONTENT}
-RELEASE_BODY
-          )
           echo "body<<RELEASE_EOF" >> "$GITHUB_OUTPUT"
           printf '## 🏗️ Architecture Diagram\n\n' >> "$GITHUB_OUTPUT"
           cat docs/architecture.md >> "$GITHUB_OUTPUT"
