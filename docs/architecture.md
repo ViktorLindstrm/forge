@@ -36,6 +36,7 @@ erDiagram
     String？ url
     String？ notes
     Decimal？ budget
+    Integer sort_order
     Atom status
     Atom color
     Integer？ project_group_id

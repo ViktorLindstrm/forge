@@ -28,23 +28,10 @@ defmodule Forge.Projects.Project do
     end
 
     read :list do
-      description "Lists projects sorted by status then name"
+      description "Lists projects sorted by sort_order then name"
 
       prepare fn query, _context ->
-        require Ash.Expr
-
-        Ash.Query.sort(query, [
-          {Ash.Expr.calc(
-             cond do
-               status == :active -> 0
-               status == :idea -> 1
-               status == :paused -> 2
-               true -> 3
-             end,
-             type: :integer
-           ), :asc},
-          {:name, :asc}
-        ])
+        Ash.Query.sort(query, [{:sort_order, :asc}, {:name, :asc}])
       end
     end
 
@@ -58,7 +45,8 @@ defmodule Forge.Projects.Project do
         :notes,
         :color,
         :budget,
-        :project_group_id
+        :project_group_id,
+        :sort_order
       ]
     end
 
@@ -72,7 +60,8 @@ defmodule Forge.Projects.Project do
         :notes,
         :color,
         :budget,
-        :project_group_id
+        :project_group_id,
+        :sort_order
       ]
     end
   end
@@ -103,6 +92,12 @@ defmodule Forge.Projects.Project do
     attribute :url, :string, public?: true
     attribute :notes, :string, public?: true
     attribute :budget, :decimal, public?: true
+
+    attribute :sort_order, :integer do
+      public? true
+      allow_nil? false
+      default 0
+    end
 
     attribute :status, :atom do
       public? true
@@ -194,6 +189,7 @@ defmodule Forge.Projects.Project do
           notes: String.t() | nil,
           color: color(),
           budget: Decimal.t() | nil,
+          sort_order: non_neg_integer(),
           project_group_id: pos_integer() | nil,
           current_task: pinned_task(),
           upcoming_task: pinned_task(),
