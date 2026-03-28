@@ -1,4 +1,5 @@
 defmodule Forge.AshDiagramTest do
+  @moduletag :schema
   use ExUnit.Case, async: true
 
   @moduledoc """

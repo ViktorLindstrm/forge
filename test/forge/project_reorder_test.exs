@@ -1,9 +1,11 @@
 defmodule Forge.ProjectReorderTest do
+  @moduletag :projects
   @moduledoc """
   Property-based tests for project sort_order and drag-and-drop reordering.
   Covers reorder_projects/1, sort_order persistence, list ordering, and
   group isolation.
   """
+  @moduletag :projects
   use Forge.DataCase, async: true
   use ExUnitProperties
 
@@ -327,6 +329,7 @@ defmodule Forge.ProjectReorderTest do
 
   # ── color_bg gradient ─────────────────────────────────────────────────────
 
+  @describetag :ui
   describe "color_bg/1 gradient classes" do
     property "every project color produces a gradient class with from/via/to stops" do
       check all(color <- color_gen(), max_runs: length(Project.colors())) do
