@@ -1,14 +1,14 @@
 defmodule Forge.ProjectReorderTest do
-  @moduletag :projects
   @moduledoc """
   Property-based tests for project sort_order and drag-and-drop reordering.
   Covers reorder_projects/1, sort_order persistence, list ordering, and
   group isolation.
   """
-  @moduletag :projects
   use Forge.DataCase, async: true
   use ExUnitProperties
 
+@moduletag :projects
+@moduletag :projects
   alias Forge.Projects
   alias Forge.Projects.Project
 

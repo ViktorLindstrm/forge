@@ -1,7 +1,7 @@
 defmodule Forge.AshDiagramTest do
-  @moduletag :schema
   use ExUnit.Case, async: true
 
+@moduletag :schema
   @moduledoc """
   Validates that Ash resource definitions are correctly configured for AshDiagram
   to generate an accurate architecture diagram.
