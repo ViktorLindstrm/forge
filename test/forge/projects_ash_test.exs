@@ -2,8 +2,8 @@ defmodule Forge.ProjectsAshTest do
   @moduledoc """
   Property-based tests for new Ash calculations, aggregates, and named actions.
   """
-  @moduletag :ash
   use Forge.DataCase, async: true
+  @moduletag :ash
   use ExUnitProperties
 
   require Ash.Query
