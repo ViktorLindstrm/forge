@@ -2311,6 +2311,9 @@
   .w-20 {
     width: calc(var(--spacing) * 20);
   }
+  .w-36 {
+    width: calc(var(--spacing) * 36);
+  }
   .w-80 {
     width: calc(var(--spacing) * 80);
   }
@@ -3914,6 +3917,11 @@
   .lg\:col-span-7 {
     @media (width >= 64rem) {
       grid-column: span 7 / span 7;
+    }
+  }
+  .lg\:col-span-12 {
+    @media (width >= 64rem) {
+      grid-column: span 12 / span 12;
     }
   }
   .lg\:mx-0 {

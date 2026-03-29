@@ -31,19 +31,14 @@ defmodule ForgeWeb.ProjectLive.Components do
 
   def summary_grid(assigns) do
     ~H"""
-    <div class="grid grid-cols-3 gap-4" id="project-summary">
-      <.summary_card
-        label="Tasks"
-        value={task_progress_label(@task_counts)}
-        icon="hero-check-badge"
-        color="violet"
-      />
+    <div class="grid grid-cols-2 gap-4" id="project-summary">
       <.summary_card
         label="BOM"
         value={bom_progress_label(@bom_budget)}
         icon="hero-shopping-cart"
         color="amber"
       />
+
       <.summary_card
         label="Notes"
         value={"#{@note_count} note" <> if @note_count == 1, do: "", else: "s"}

@@ -2,6 +2,7 @@ defmodule Forge.Projects.Project do
   use Ash.Resource,
     domain: Forge.Projects,
     data_layer: AshPostgres.DataLayer,
+    notifiers: [Ash.Notifier.PubSub],
     authorizers: [Ash.Policy.Authorizer]
 
   @statuses [:idea, :active, :paused, :done]
@@ -61,7 +62,8 @@ defmodule Forge.Projects.Project do
         :color,
         :budget,
         :project_group_id,
-        :sort_order
+        :sort_order,
+        :tasks_enabled
       ]
     end
   end
@@ -70,6 +72,16 @@ defmodule Forge.Projects.Project do
     policy always() do
       authorize_if always()
     end
+  end
+
+  pub_sub do
+    module ForgeWeb.Endpoint
+
+    broadcast_type :notification
+
+    prefix "projects"
+
+    publish_all :update, ["project", :id]
   end
 
   validations do
@@ -111,6 +123,12 @@ defmodule Forge.Projects.Project do
       allow_nil? false
       default :blue
       constraints one_of: @colors
+    end
+
+    attribute :tasks_enabled, :boolean do
+      public? true
+      allow_nil? false
+      default false
     end
 
     timestamps type: :utc_datetime

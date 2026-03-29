@@ -1,0 +1,9 @@
+defmodule Forge.Repo.Migrations.AddTasksEnabledToProjects do
+  use Ecto.Migration
+
+  def change do
+    alter table(:projects) do
+      add :tasks_enabled, :boolean, default: false, null: false
+    end
+  end
+end

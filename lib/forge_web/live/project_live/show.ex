@@ -198,7 +198,7 @@ defmodule ForgeWeb.ProjectLive.Show do
         />
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div class="lg:col-span-7 space-y-6">
+          <div :if={@project.tasks_enabled} class="lg:col-span-7 space-y-6">
             <Components.tasks_component
               task_counts={@task_counts}
               task_form={@task_form}
@@ -221,7 +221,27 @@ defmodule ForgeWeb.ProjectLive.Show do
             />
           </div>
 
-          <div class="lg:col-span-5 space-y-6">
+          <div :if={!@project.tasks_enabled} class="lg:col-span-12 space-y-6">
+            <Components.notes_component
+              sections_open={@sections_open}
+              project={@project}
+              note_form={@note_form}
+              note_form_open?={@note_form_open?}
+              streams={@streams}
+              notes_empty?={@notes_empty?}
+              note_page={@note_page}
+              note_total_pages={@note_total_pages}
+            />
+
+            <Components.bom_component
+              sections_open={@sections_open}
+              bom_budget={@bom_budget}
+              bom_form={@bom_form}
+              bom_form_open?={@bom_form_open?}
+            />
+          </div>
+
+          <div :if={@project.tasks_enabled} class="lg:col-span-5 space-y-6">
             <Components.notes_component
               sections_open={@sections_open}
               project={@project}
@@ -244,49 +264,69 @@ defmodule ForgeWeb.ProjectLive.Show do
     project = Projects.get_project!(id)
 
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Forge.PubSub, "tasks:project:#{project.id}")
+      Phoenix.PubSub.subscribe(Forge.PubSub, "projects:project:#{project.id}")
       Phoenix.PubSub.subscribe(Forge.PubSub, "bom_items:project:#{project.id}")
       Phoenix.PubSub.subscribe(Forge.PubSub, "journal_entries:project:#{project.id}")
+
+      if project.tasks_enabled do
+        Phoenix.PubSub.subscribe(Forge.PubSub, "tasks:project:#{project.id}")
+      end
     end
 
-    task_counts = Projects.task_stats(project.id)
-    tasks = Projects.list_tasks_with_subtasks(project.id)
     note_count = Projects.count_journal_entries(project.id)
     entries = Projects.list_journal_entries_page(project.id, 1, @notes_per_page)
     total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
 
-    pinned_current_task = Enum.find(tasks, &(&1.pin_status == :current))
-    pinned_upcoming_task = Enum.find(tasks, &(&1.pin_status == :upcoming))
+    # Only load tasks-related data when tasks are enabled for this project
+    {task_counts, tasks, pinned_current_task, pinned_upcoming_task, tasks_empty?} =
+      if project.tasks_enabled do
+        tc = Projects.task_stats(project.id)
+        t = Projects.list_tasks_with_subtasks(project.id)
 
-    {:ok,
-     socket
-     |> assign(:project, project)
-     |> assign(:page_title, "Project · Forge")
-     |> assign(:sections_open, %{tasks: true, bom: true, notes: true})
-     |> assign(:task_counts, task_counts)
-     |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
-     |> assign(:bom_budget, Projects.bom_budget(project.id))
-     |> assign(:bom_form, Components.bom_form())
-     |> assign(:tasks_empty?, tasks == [])
-     |> assign(:pinned_current_task, pinned_current_task)
-     |> assign(:pinned_upcoming_task, pinned_upcoming_task)
-     |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
-     |> assign(:note_form_open?, false)
-     |> assign(:task_form_open?, false)
-     |> assign(:bom_form_open?, false)
-     |> assign(:expanded_task_id, nil)
-     |> assign(:editing_task_id, nil)
-     |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
-     |> assign(:subtask_form_task_id, nil)
-     |> assign(:collapsed_subtasks, MapSet.new())
-     |> assign(:note_count, note_count)
-     |> assign(:note_page, 1)
-     |> assign(:note_total_pages, total_pages)
-     |> assign(:notes_empty?, entries == [])
-     |> assign(:budget_editing?, false)
-     |> assign(:budget_form, build_budget_form(project))
-     |> stream(:tasks, tasks)
-     |> stream(:journal_entries, entries)}
+        {tc, t, Enum.find(t, &(&1.pin_status == :current)),
+         Enum.find(t, &(&1.pin_status == :upcoming)), t == []}
+      else
+        {%{}, [], nil, nil, true}
+      end
+
+    base_socket =
+      socket
+      |> assign(:project, project)
+      |> assign(:page_title, "Project · Forge")
+      |> assign(:sections_open, %{tasks: true, bom: true, notes: true})
+      |> assign(:task_counts, task_counts)
+      |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
+      |> assign(:bom_budget, Projects.bom_budget(project.id))
+      |> assign(:bom_form, Components.bom_form())
+      |> assign(:tasks_empty?, tasks_empty?)
+      |> assign(:pinned_current_task, pinned_current_task)
+      |> assign(:pinned_upcoming_task, pinned_upcoming_task)
+      |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
+      |> assign(:note_form_open?, false)
+      |> assign(:task_form_open?, false)
+      |> assign(:bom_form_open?, false)
+      |> assign(:expanded_task_id, nil)
+      |> assign(:editing_task_id, nil)
+      |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+      |> assign(:subtask_form_task_id, nil)
+      |> assign(:collapsed_subtasks, MapSet.new())
+      |> assign(:note_count, note_count)
+      |> assign(:note_page, 1)
+      |> assign(:note_total_pages, total_pages)
+      |> assign(:notes_empty?, entries == [])
+      |> assign(:budget_editing?, false)
+      |> assign(:budget_form, build_budget_form(project))
+
+    socket_with_tasks =
+      if project.tasks_enabled do
+        stream(base_socket, :tasks, tasks)
+      else
+        base_socket
+      end
+
+    final_socket = stream(socket_with_tasks, :journal_entries, entries)
+
+    {:ok, final_socket}
   end
 
   @impl true
@@ -294,7 +334,11 @@ defmodule ForgeWeb.ProjectLive.Show do
         %Phoenix.Socket.Broadcast{payload: %Notification{resource: Forge.Projects.Task} = notif},
         socket
       ) do
-    handle_info(notif, socket)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      handle_info(notif, socket)
+    end
   end
 
   def handle_info(
@@ -363,9 +407,49 @@ defmodule ForgeWeb.ProjectLive.Show do
     {:noreply, socket}
   end
 
-  def handle_info(%Notification{resource: Forge.Projects.BomItem}, socket) do
-    project_id = socket.assigns.project.id
-    {:noreply, assign(socket, :bom_budget, Projects.bom_budget(project_id))}
+  def handle_info(
+        %Notification{resource: Forge.Projects.Project, action: action, data: project},
+        socket
+      ) do
+    # Project updated notification (e.g. tasks_enabled changed)
+    # Reload project and update assigns. Adjust task subscriptions/streams if tasks_enabled changed.
+    current = socket.assigns.project
+    project = Ash.get!(Forge.Projects.Project, project.id)
+
+    socket = assign(socket, :project, project)
+
+    cond do
+      current.tasks_enabled == project.tasks_enabled ->
+        {:noreply, socket}
+
+      project.tasks_enabled ->
+        # Tasks were enabled -> subscribe and stream tasks
+        if connected?(socket),
+          do: Phoenix.PubSub.subscribe(Forge.PubSub, "tasks:project:#{project.id}")
+
+        tasks = Projects.list_tasks_with_subtasks(project.id)
+
+        {:noreply,
+         socket
+         |> assign(:task_counts, Projects.task_stats(project.id))
+         |> assign(:tasks_empty?, tasks == [])
+         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+         |> stream(:tasks, tasks, reset: true)}
+
+      true ->
+        # Tasks were disabled -> unsubscribe and clear tasks stream
+        if connected?(socket),
+          do: Phoenix.PubSub.unsubscribe(Forge.PubSub, "tasks:project:#{project.id}")
+
+        {:noreply,
+         socket
+         |> assign(:task_counts, %{})
+         |> assign(:tasks_empty?, true)
+         |> assign(:pinned_current_task, nil)
+         |> assign(:pinned_upcoming_task, nil)
+         |> stream(:tasks, [], reset: true)}
+    end
   end
 
   def handle_info(%Notification{resource: Forge.Projects.JournalEntry}, socket) do
@@ -387,161 +471,197 @@ defmodule ForgeWeb.ProjectLive.Show do
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   def handle_event("task_create", %{"task" => params} = payload, socket) do
-    project_id = socket.assigns.project.id
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      project_id = socket.assigns.project.id
 
-    params =
-      params
-      |> Map.put("project_id", project_id)
-      |> maybe_put_parent_task_id(Map.get(payload, "parent_task_id"))
+      params =
+        params
+        |> Map.put("project_id", project_id)
+        |> maybe_put_parent_task_id(Map.get(payload, "parent_task_id"))
 
-    case AshPhoenix.Form.submit(socket.assigns.task_form.source, params: params) do
-      {:ok, _task} ->
-        tasks = Projects.list_tasks_with_subtasks(project_id)
+      case AshPhoenix.Form.submit(socket.assigns.task_form.source, params: params) do
+        {:ok, _task} ->
+          tasks = Projects.list_tasks_with_subtasks(project_id)
 
-        {:noreply,
-         socket
-         |> assign(:task_counts, Projects.task_stats(project_id))
-         |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
-         |> assign(:tasks_empty?, tasks == [])
-         |> assign(:task_form_open?, false)
-         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
-         |> assign(:expanded_task_id, nil)
-         |> stream(:tasks, tasks, reset: true)}
+          {:noreply,
+           socket
+           |> assign(:task_counts, Projects.task_stats(project_id))
+           |> assign(:task_form, ForgeWeb.ProjectLive.Tasks.task_form())
+           |> assign(:tasks_empty?, tasks == [])
+           |> assign(:task_form_open?, false)
+           |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+           |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+           |> assign(:expanded_task_id, nil)
+           |> stream(:tasks, tasks, reset: true)}
 
-      {:error, form} ->
-        {:noreply, assign(socket, :task_form, to_form(form))}
+        {:error, form} ->
+          {:noreply, assign(socket, :task_form, to_form(form))}
+      end
     end
   end
 
   def handle_event("task_toggle", %{"id" => id}, socket) do
-    project_id = socket.assigns.project.id
-    socket = assign(socket, :expanded_task_id, nil)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      project_id = socket.assigns.project.id
+      socket = assign(socket, :expanded_task_id, nil)
 
-    task = Projects.get_task!(id)
+      task = Projects.get_task!(id)
 
-    case Projects.toggle_task_done(task) do
-      {:ok, _task} ->
-        tasks = Projects.list_tasks_with_subtasks(project_id)
+      case Projects.toggle_task_done(task) do
+        {:ok, _task} ->
+          tasks = Projects.list_tasks_with_subtasks(project_id)
 
-        {:noreply,
-         socket
-         |> assign(:task_counts, Projects.task_stats(project_id))
-         |> assign(:tasks_empty?, tasks == [])
-         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
-         |> stream(:tasks, tasks, reset: true)}
+          {:noreply,
+           socket
+           |> assign(:task_counts, Projects.task_stats(project_id))
+           |> assign(:tasks_empty?, tasks == [])
+           |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+           |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+           |> stream(:tasks, tasks, reset: true)}
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not update task.")}
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not update task.")}
+      end
     end
   end
 
   def handle_event("task_delete", %{"id" => id}, socket) do
-    project_id = socket.assigns.project.id
-    socket = assign(socket, :expanded_task_id, nil)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      project_id = socket.assigns.project.id
+      socket = assign(socket, :expanded_task_id, nil)
 
-    task = Projects.get_task!(id)
-    {:ok, _} = Projects.delete_task(task)
+      task = Projects.get_task!(id)
+      {:ok, _} = Projects.delete_task(task)
 
-    tasks = Projects.list_tasks_with_subtasks(project_id)
+      tasks = Projects.list_tasks_with_subtasks(project_id)
 
-    {:noreply,
-     socket
-     |> assign(:task_counts, Projects.task_stats(project_id))
-     |> assign(:tasks_empty?, tasks == [])
-     |> stream_delete(:tasks, task)}
+      {:noreply,
+       socket
+       |> assign(:task_counts, Projects.task_stats(project_id))
+       |> assign(:tasks_empty?, tasks == [])
+       |> stream_delete(:tasks, task)}
+    end
   end
 
   def handle_event("task_edit_open", %{"id" => id}, socket) do
-    task = Projects.get_task!(id)
-    form = ForgeWeb.ProjectLive.Tasks.task_edit_form(task)
-    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      task = Projects.get_task!(id)
+      form = ForgeWeb.ProjectLive.Tasks.task_edit_form(task)
+      tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
-    {:noreply,
-     socket
-     |> assign(:expanded_task_id, nil)
-     |> assign(:editing_task_id, task.id)
-     |> assign(:task_edit_form, form)
-     |> stream(:tasks, tasks, reset: true)}
+      {:noreply,
+       socket
+       |> assign(:expanded_task_id, nil)
+       |> assign(:editing_task_id, task.id)
+       |> assign(:task_edit_form, form)
+       |> stream(:tasks, tasks, reset: true)}
+    end
   end
 
   def handle_event("task_edit_cancel", _params, socket) do
-    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
-    {:noreply,
-     socket
-     |> assign(:editing_task_id, nil)
-     |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
-     |> stream(:tasks, tasks, reset: true)}
+      {:noreply,
+       socket
+       |> assign(:editing_task_id, nil)
+       |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+       |> stream(:tasks, tasks, reset: true)}
+    end
   end
 
   def handle_event("task_edit_validate", %{"task_id" => _id, "task" => task_params}, socket) do
-    form =
-      AshPhoenix.Form.validate(socket.assigns.task_edit_form.source, task_params) |> to_form()
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      form =
+        AshPhoenix.Form.validate(socket.assigns.task_edit_form.source, task_params) |> to_form()
 
-    {:noreply, assign(socket, :task_edit_form, form)}
+      {:noreply, assign(socket, :task_edit_form, form)}
+    end
   end
 
   def handle_event("task_edit_save", %{"task" => params}, socket) do
-    project_id = socket.assigns.project.id
-    socket = assign(socket, :expanded_task_id, nil)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      project_id = socket.assigns.project.id
+      socket = assign(socket, :expanded_task_id, nil)
 
-    case AshPhoenix.Form.submit(socket.assigns.task_edit_form.source, params: params) do
-      {:ok, _task} ->
-        tasks = Projects.list_tasks_with_subtasks(project_id)
+      case AshPhoenix.Form.submit(socket.assigns.task_edit_form.source, params: params) do
+        {:ok, _task} ->
+          tasks = Projects.list_tasks_with_subtasks(project_id)
 
-        {:noreply,
-         socket
-         |> assign(:task_counts, Projects.task_stats(project_id))
-         |> assign(:tasks_empty?, tasks == [])
-         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
-         |> assign(:editing_task_id, nil)
-         |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
-         |> stream(:tasks, tasks, reset: true)}
+          {:noreply,
+           socket
+           |> assign(:task_counts, Projects.task_stats(project_id))
+           |> assign(:tasks_empty?, tasks == [])
+           |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+           |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+           |> assign(:editing_task_id, nil)
+           |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
+           |> stream(:tasks, tasks, reset: true)}
 
-      {:error, form} ->
-        {:noreply, assign(socket, :task_edit_form, to_form(form))}
+        {:error, form} ->
+          {:noreply, assign(socket, :task_edit_form, to_form(form))}
+      end
     end
   end
 
   def handle_event("task_details_toggle", %{"id" => id}, socket) do
-    expanded = socket.assigns.expanded_task_id
-    new_expanded = if(expanded == id, do: nil, else: id)
-    tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      expanded = socket.assigns.expanded_task_id
+      new_expanded = if(expanded == id, do: nil, else: id)
+      tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
-    {:noreply,
-     socket
-     |> assign(:expanded_task_id, new_expanded)
-     |> stream(:tasks, tasks, reset: true)}
+      {:noreply,
+       socket
+       |> assign(:expanded_task_id, new_expanded)
+       |> stream(:tasks, tasks, reset: true)}
+    end
   end
 
   def handle_event("task_pin_cycle", %{"id" => id}, socket) do
-    project_id = socket.assigns.project.id
-    task = Projects.get_task!(id)
-    socket = assign(socket, :expanded_task_id, nil)
+    if !socket.assigns.project.tasks_enabled do
+      {:noreply, socket}
+    else
+      project_id = socket.assigns.project.id
+      task = Projects.get_task!(id)
+      socket = assign(socket, :expanded_task_id, nil)
 
-    result =
-      case task.pin_status do
-        :current -> Projects.pin_task(id, :upcoming)
-        :upcoming -> Projects.unpin_task(id)
-        _ -> Projects.pin_task(id, :current)
+      result =
+        case task.pin_status do
+          :current -> Projects.pin_task(id, :upcoming)
+          :upcoming -> Projects.unpin_task(id)
+          _ -> Projects.pin_task(id, :current)
+        end
+
+      case result do
+        {:ok, _task} ->
+          tasks = Projects.list_tasks_with_subtasks(project_id)
+
+          {:noreply,
+           socket
+           |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
+           |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
+           |> assign(:tasks_empty?, tasks == [])
+           |> stream(:tasks, tasks, reset: true)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not update pin status.")}
       end
-
-    case result do
-      {:ok, _task} ->
-        tasks = Projects.list_tasks_with_subtasks(project_id)
-
-        {:noreply,
-         socket
-         |> assign(:pinned_current_task, Enum.find(tasks, &(&1.pin_status == :current)))
-         |> assign(:pinned_upcoming_task, Enum.find(tasks, &(&1.pin_status == :upcoming)))
-         |> assign(:tasks_empty?, tasks == [])
-         |> stream(:tasks, tasks, reset: true)}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not update pin status.")}
     end
   end
 
