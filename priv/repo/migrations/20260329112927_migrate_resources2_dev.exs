@@ -1,4 +1,4 @@
-defmodule Forge.Repo.Migrations.MigrateResources2 do
+defmodule Forge.Repo.Migrations.MigrateResources2Dev do
   @moduledoc """
   Updates resources based on their most recent snapshots.
 

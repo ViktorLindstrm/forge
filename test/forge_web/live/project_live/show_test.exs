@@ -26,10 +26,17 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
   end
 
   defp create_project!(attrs \\ %{}) do
+    {tasks_enabled, attrs} = Map.pop(attrs, "tasks_enabled", true)
+
     {:ok, p} =
       Projects.create_project(Map.merge(%{"name" => "P#{System.unique_integer()}"}, attrs))
 
-    p
+    if tasks_enabled do
+      {:ok, p} = Projects.update_project(p, %{"tasks_enabled" => true})
+      p
+    else
+      p
+    end
   end
 
   defp create_task!(project, title) do
