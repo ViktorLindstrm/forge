@@ -4,8 +4,8 @@ defmodule Forge.ProjectReorderTest do
   Covers reorder_projects/1, sort_order persistence, list ordering, and
   group isolation.
   """
-  @moduletag :projects
   use Forge.DataCase, async: true
+  @moduletag :projects
   use ExUnitProperties
 
   alias Forge.Projects
