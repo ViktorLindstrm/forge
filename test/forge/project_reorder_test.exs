@@ -328,8 +328,8 @@ defmodule Forge.ProjectReorderTest do
 
   # ── color_bg gradient ─────────────────────────────────────────────────────
 
-  @describetag :ui
   describe "color_bg/1 gradient classes" do
+    @describetag :ui
     property "every project color produces a gradient class with from/via/to stops" do
       check all(color <- color_gen(), max_runs: length(Project.colors())) do
         classes = ForgeWeb.ProjectLive.Components.Badges.color_bg(color)
