@@ -1,6 +1,6 @@
 defmodule Forge.ProjectsIntegrationTest do
-  @moduletag :integration
   use Forge.DataCase, async: true
+  @moduletag :integration
   use ExUnitProperties
 
   alias Forge.Projects
