@@ -122,6 +122,18 @@
     },
     {
       "allow_nil?": false,
+      "default": "false",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "tasks_enabled",
+      "type": "boolean"
+    },
+    {
+      "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
       "precision": null,
@@ -182,7 +194,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "A7D0FBC6334C5CD0B080487D4E8F7D70B7F4BA963DB4A7D1382D6A10D5A24342",
+  "hash": "DCFEEC5FD5106E9124C94B92E6D2367AFA7EDA3C347A67EFF2D41DD9CF1C4C26",
   "identities": [],
   "multitenancy": {
     "attribute": null,

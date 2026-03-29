@@ -2,6 +2,8 @@ defmodule Forge.ProjectsTest do
   use Forge.DataCase, async: true
   use ExUnitProperties
 
+  @moduletag :projects
+
   alias Forge.Projects
   alias Forge.Projects.{Project}
 
@@ -27,6 +29,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "create_project/1" do
+    @describetag :projects
     property "creates a project for any valid name" do
       check all(name <- project_name_generator()) do
         assert {:ok, %Project{} = p} = Projects.create_project(%{"name" => name})
@@ -44,6 +47,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "list_projects/0" do
+    @describetag :projects
     property "returns at least the projects that were created" do
       check all(names <- list_of(project_name_generator(), min_length: 1, max_length: 5)) do
         before_ids = Projects.list_projects() |> Enum.map(& &1.id) |> MapSet.new()
@@ -84,6 +88,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "get_project!/1" do
+    @describetag :projects
     property "retrieves the same project that was created" do
       check all(name <- project_name_generator()) do
         {:ok, created} = Projects.create_project(%{"name" => name})
@@ -95,6 +100,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "update_project/2" do
+    @describetag :projects
     property "updates the project name" do
       check all(
               old_name <- project_name_generator(),
@@ -115,6 +121,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "reorder_tasks/2" do
+    @describetag :tasks
     property "persists sort_order to match provided id order" do
       check all(
               titles <- list_of(title_generator(), min_length: 2, max_length: 5),
@@ -142,6 +149,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "count_by_status/0" do
+    @describetag :projects
     property "returns a count of at least 1 for a status after creating a project with that status" do
       check all(
               status <- status_generator(),
@@ -168,6 +176,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "create_task/1 sort_order auto-assignment" do
+    @describetag :tasks
     property "tasks get incrementing sort_order within a project" do
       check all(titles <- list_of(title_generator(), min_length: 2, max_length: 5)) do
         project = create_project!()
@@ -198,6 +207,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "create_task/1 and list_tasks/1" do
+    @describetag :tasks
     property "created tasks appear in list_tasks for the project" do
       check all(title <- title_generator()) do
         project = create_project!()
@@ -223,6 +233,7 @@ defmodule Forge.ProjectsTest do
   end
 
   describe "task pinning" do
+    @describetag :tasks
     property "only one current pin exists per project" do
       check all(
               titles <- list_of(title_generator(), min_length: 2, max_length: 5),

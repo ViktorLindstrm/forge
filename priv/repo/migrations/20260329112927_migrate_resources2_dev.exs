@@ -1,4 +1,4 @@
-defmodule Forge.Repo.Migrations.MigrateResources1 do
+defmodule Forge.Repo.Migrations.MigrateResources2Dev do
   @moduledoc """
   Updates resources based on their most recent snapshots.
 
@@ -9,13 +9,13 @@ defmodule Forge.Repo.Migrations.MigrateResources1 do
 
   def up do
     alter table(:projects) do
-      add_if_not_exists :sort_order, :bigint, null: false, default: 0
+      add :tasks_enabled, :boolean, null: false, default: false
     end
   end
 
   def down do
     alter table(:projects) do
-      remove :sort_order
+      remove :tasks_enabled
     end
   end
 end

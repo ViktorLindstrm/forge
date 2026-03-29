@@ -173,6 +173,24 @@ defmodule ForgeWeb.ProjectLive.Form do
               placeholder="https://github.com/you/project"
             />
 
+            <%!-- Enable tasks toggle (integrated into form flow) --%>
+            <div class="flex items-center gap-3">
+              <label
+                for="toggle-tasks-enabled"
+                class="text-sm font-medium text-gray-700 dark:text-gray-300 w-36"
+              >
+                Enable tasks
+              </label>
+              <div class="flex items-center gap-3">
+                <.switch
+                  id="toggle-tasks-enabled"
+                  checked={@project && @project.tasks_enabled}
+                  phx-click="toggle_tasks_enabled"
+                  phx-value-enabled={if @project && @project.tasks_enabled, do: "false", else: "true"}
+                />
+              </div>
+            </div>
+
             <%!-- Notes --%>
             <.input
               field={@form[:notes]}
@@ -192,6 +210,7 @@ defmodule ForgeWeb.ProjectLive.Form do
               >
                 Cancel
               </.button>
+
               <.button type="submit" phx-disable-with="Saving…">
                 {if @live_action == :new, do: "Create project", else: "Save changes"}
               </.button>
@@ -244,7 +263,21 @@ defmodule ForgeWeb.ProjectLive.Form do
   end
 
   @impl true
-  def handle_event("validate", %{"form" => params}, socket) do
+  def handle_event("validate", %{"form" => params} = payload, socket) do
+    params =
+      case Map.get(params, "tasks_enabled") do
+        "" ->
+          # Prevent intermediate empty values from overwriting the persisted setting when toggling
+          if socket.assigns[:project] do
+            Map.put(params, "tasks_enabled", to_string(socket.assigns.project.tasks_enabled))
+          else
+            params
+          end
+
+        _ ->
+          params
+      end
+
     form =
       AshPhoenix.Form.validate(socket.assigns.form.source, params) |> to_form()
 
@@ -259,15 +292,18 @@ defmodule ForgeWeb.ProjectLive.Form do
     {:noreply, assign(socket, :show_new_group, !socket.assigns.show_new_group)}
   end
 
-  def handle_event("create_group", params, socket) do
-    name = Map.get(params, "new_group_name", "") |> String.trim()
-    do_create_group(socket, name)
-  end
+  def handle_event("toggle_tasks_enabled", %{"enabled" => enabled}, socket) do
+    project = socket.assigns.project
+    new_val = enabled in ["true", true, true]
 
-  @spec do_create_group(Phoenix.LiveView.Socket.t(), String.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
-  defp do_create_group(socket, name) when name == "" do
-    {:noreply, put_flash(socket, :error, "Group name cannot be blank")}
+    case Projects.update_project(project, %{"tasks_enabled" => new_val}) do
+      {:ok, updated} ->
+        form = AshPhoenix.Form.for_update(updated, :update, domain: Forge.Projects) |> to_form()
+        {:noreply, assign(socket, project: updated, form: form)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not toggle tasks setting")}
+    end
   end
 
   defp do_create_group(socket, name) do

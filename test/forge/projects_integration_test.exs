@@ -1,5 +1,6 @@
 defmodule Forge.ProjectsIntegrationTest do
   use Forge.DataCase, async: true
+  @moduletag :integration
   use ExUnitProperties
 
   alias Forge.Projects
@@ -82,6 +83,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "project group assignment flow" do
+    @describetag :groups
     @tag timeout: 60_000
     property "project can be assigned and reassigned to groups, then ungrouped" do
       check all(
@@ -135,6 +137,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "task lifecycle within project" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "tasks are created, updated, reordered, then deleted" do
       check all(
@@ -223,6 +226,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "subtask hierarchy flow" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "parent task cascades done to subtasks" do
       check all(
@@ -292,6 +296,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "pin workflow integration" do
+    @describetag :tasks
     @tag timeout: 120_000
     property "current/upcoming pins are managed across task lifecycle" do
       check all(
@@ -353,6 +358,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "BOM item flow" do
+    @describetag :bom
     @tag timeout: 60_000
     property "bom items cycle through statuses and budget is reflected correctly" do
       check all(
@@ -446,6 +452,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "journal entry flow" do
+    @describetag :journal
     @tag timeout: 60_000
     property "journal entries have incrementing sort_order and paginate correctly" do
       check all(
@@ -503,6 +510,7 @@ defmodule Forge.ProjectsIntegrationTest do
   end
 
   describe "full project teardown: cascade delete" do
+    @describetag :integration
     @tag timeout: 120_000
     property "deleting project removes tasks, bom items, and journal entries" do
       check all(

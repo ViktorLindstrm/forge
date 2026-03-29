@@ -3,6 +3,7 @@ defmodule Forge.ProjectsAshTest do
   Property-based tests for new Ash calculations, aggregates, and named actions.
   """
   use Forge.DataCase, async: true
+  @moduletag :ash
   use ExUnitProperties
 
   require Ash.Query
@@ -42,6 +43,7 @@ defmodule Forge.ProjectsAshTest do
   # ── Named read actions ────────────────────────────────────────────────────
 
   describe "Task :by_project named action" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "returns only tasks for the requested project" do
       check all(
@@ -89,6 +91,7 @@ defmodule Forge.ProjectsAshTest do
   end
 
   describe "BomItem :by_project named action" do
+    @describetag :bom
     @tag timeout: 60_000
     property "returns only bom items for the requested project" do
       check all(
@@ -114,6 +117,7 @@ defmodule Forge.ProjectsAshTest do
   # ── Task.overdue? calculation ─────────────────────────────────────────────
 
   describe "Task.overdue? calculation" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "overdue? is true for past due dates on non-done tasks" do
       check all(
@@ -209,6 +213,7 @@ defmodule Forge.ProjectsAshTest do
   # ── Task done_subtask_count aggregate ────────────────────────────────────
 
   describe "Task done_subtask_count aggregate" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "done_subtask_count reflects completed subtasks" do
       check all(
@@ -248,6 +253,7 @@ defmodule Forge.ProjectsAshTest do
   # ── Project.completion_percentage calculation ─────────────────────────────
 
   describe "Project.completion_percentage calculation" do
+    @describetag :projects
     @tag timeout: 60_000
     property "completion_percentage is nil when no tasks" do
       check all(
@@ -299,6 +305,7 @@ defmodule Forge.ProjectsAshTest do
   # ── Project.received_bom_item_count aggregate ─────────────────────────────
 
   describe "Project.received_bom_item_count aggregate" do
+    @describetag :projects
     @tag timeout: 60_000
     property "received_bom_item_count matches items with :received status" do
       check all(
@@ -327,6 +334,7 @@ defmodule Forge.ProjectsAshTest do
   # ── BomItem :toggle_status action ─────────────────────────────────────────
 
   describe "BomItem :toggle_status action" do
+    @describetag :bom
     @tag timeout: 60_000
     property "status cycles: needed → ordered → received → needed" do
       check all(
@@ -375,6 +383,7 @@ defmodule Forge.ProjectsAshTest do
   # ── count_by_status using Ash.count! ─────────────────────────────────────
 
   describe "count_by_status" do
+    @describetag :projects
     @tag timeout: 60_000
     property "returns correct counts for each status" do
       check all(
@@ -402,6 +411,7 @@ defmodule Forge.ProjectsAshTest do
   # ── task_stats using Ash.count! ───────────────────────────────────────────
 
   describe "task_stats" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "task_stats returns per-status counts for the project only" do
       check all(
@@ -432,6 +442,7 @@ defmodule Forge.ProjectsAshTest do
   # ── list_tasks_with_subtasks using relationship load ─────────────────────
 
   describe "list_tasks_with_subtasks" do
+    @describetag :tasks
     @tag timeout: 60_000
     property "returns flat list: parent followed immediately by its subtasks" do
       check all(
@@ -473,6 +484,7 @@ defmodule Forge.ProjectsAshTest do
   # ── journal_entries :by_project with pagination ───────────────────────────
 
   describe "JournalEntry :by_project pagination" do
+    @describetag :journal
     @tag timeout: 60_000
     property "page and per_page arguments scope results correctly" do
       check all(

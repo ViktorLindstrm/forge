@@ -38,7 +38,7 @@ defmodule ForgeWeb.Endpoint do
     plug Phoenix.LiveReloader
     plug Phoenix.CodeReloader
     plug AshPhoenix.Plug.CheckCodegenStatus
-    plug Phoenix.Ecto.CheckRepoStatus, otp_app: :forge
+    plug ForgeWeb.Plugs.SafeCheckRepoStatus, otp_app: :forge
   end
 
   plug Phoenix.LiveDashboard.RequestLogger,

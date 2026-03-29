@@ -39,6 +39,7 @@ erDiagram
     Integer sort_order
     Atom status
     Atom color
+    Boolean tasks_enabled
     Integer？ project_group_id
   }
   "Forge.Projects.ProjectGroup"["ProjectGroup"] {
