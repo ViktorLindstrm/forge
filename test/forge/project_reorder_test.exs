@@ -7,8 +7,8 @@ defmodule Forge.ProjectReorderTest do
   use Forge.DataCase, async: true
   use ExUnitProperties
 
-@moduletag :projects
-@moduletag :projects
+  @moduletag :projects
+  @moduletag :projects
   alias Forge.Projects
   alias Forge.Projects.Project
 
