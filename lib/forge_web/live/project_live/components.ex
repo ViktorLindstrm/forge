@@ -5,28 +5,197 @@ defmodule ForgeWeb.ProjectLive.Components do
   alias ForgeWeb.ProjectLive.Components.BomHelpers
   alias ForgeWeb.ProjectLive.Components.Formatting
 
-  alias ForgeWeb.ProjectLive.Bom
-  alias ForgeWeb.ProjectLive.Notes
-
   alias ForgeWeb.ProjectLive.Components.Pills
 
   defdelegate pill(assigns), to: Pills
   defdelegate color_bg(color), to: Badges
   defdelegate url_display(url), to: Formatting
 
-  @spec bom_form() :: Phoenix.HTML.Form.t()
-  def bom_form, do: Bom.bom_form()
-
-  @spec note_form() :: Phoenix.HTML.Form.t()
-  def note_form, do: Notes.note_form()
-
   @spec status_badge(map()) :: Phoenix.LiveView.Rendered.t()
   defdelegate status_badge(assigns), to: Badges
+
+  @spec budget_display(Decimal.t() | nil, String.t()) :: String.t()
+  def budget_display(nil, _currency), do: "No budget set"
+  def budget_display(%Decimal{} = d, currency), do: Formatting.money(d, currency)
+
+  @spec project_header(map()) :: Phoenix.LiveView.Rendered.t()
+  attr :project, :any, required: true
+  attr :budget_editing?, :boolean, required: true
+  attr :budget_form, :any, required: true
+
+  def project_header(assigns) do
+    ~H"""
+    <div class="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-6">
+      <div class={["h-2", color_bg(@project.color)]} />
+      <div class="p-6">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <h1
+            class="text-2xl font-bold text-gray-900 dark:text-white leading-tight"
+            id="project-title"
+          >
+            {@project.name}
+          </h1>
+          <div class="flex items-center gap-2">
+            <.status_badge status={@project.status} />
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <.link
+                navigate={~p"/projects/#{@project}/edit?return_to=show"}
+                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                id="project-card-edit"
+                title="Edit project"
+              >
+                <.icon name="hero-pencil" class="size-4" />
+              </.link>
+              <button
+                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                phx-click="delete"
+                data-confirm="Delete this project?"
+                id="project-delete"
+                title="Delete project"
+              >
+                <.icon name="hero-trash" class="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div :if={@project.current_task || @project.upcoming_task} class="mb-4" id="project-pins">
+          <div
+            :if={@project.current_task}
+            class="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 px-3 py-2"
+            id="project-current-task"
+          >
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Current
+              </p>
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {@project.current_task.title}
+              </p>
+            </div>
+            <button
+              type="button"
+              phx-click="task_unpin"
+              phx-value-id={@project.current_task.id}
+              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+              id="project-current-unpin"
+            >
+              Unpin
+            </button>
+          </div>
+
+          <div
+            :if={@project.upcoming_task}
+            class="mt-2 flex items-center justify-between gap-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-900/40 px-3 py-2"
+            id="project-upcoming-task"
+          >
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                Upcoming
+              </p>
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {@project.upcoming_task.title}
+              </p>
+            </div>
+            <button
+              type="button"
+              phx-click="task_unpin"
+              phx-value-id={@project.upcoming_task.id}
+              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-sky-700 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors"
+              id="project-upcoming-unpin"
+            >
+              Unpin
+            </button>
+          </div>
+        </div>
+
+        <p
+          :if={@project.description}
+          class="text-gray-600 dark:text-gray-400 leading-relaxed mb-4"
+        >
+          {@project.description}
+        </p>
+
+        <div class="flex flex-wrap gap-4 text-sm">
+          <div
+            :if={@project.tech_stack}
+            class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400"
+          >
+            <.icon name="hero-code-bracket" class="size-4 text-gray-400" />
+            {@project.tech_stack}
+          </div>
+
+          <a
+            :if={@project.url}
+            href={@project.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 hover:underline"
+          >
+            <.icon name="hero-arrow-top-right-on-square" class="size-4" />
+            {url_display(@project.url)}
+          </a>
+
+          <div class="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-xs ml-auto">
+            Updated {Calendar.strftime(@project.updated_at, "%b %d, %Y")}
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
+          <.icon name="hero-banknotes" class="size-4 text-emerald-500 shrink-0" />
+          <%= if @budget_editing? do %>
+            <.form
+              for={@budget_form}
+              phx-submit="budget_update"
+              id="budget-form"
+              class="flex items-center gap-2 flex-1"
+            >
+              <.input field={@budget_form[:budget]} type="number" step="0.01" label="" />
+              <button
+                type="submit"
+                id="budget-save"
+                class="text-xs font-semibold text-violet-600 hover:text-violet-500 shrink-0"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                phx-click="budget_cancel"
+                id="budget-cancel"
+                class="text-xs font-medium text-gray-500 hover:text-gray-900 shrink-0"
+              >
+                Cancel
+              </button>
+            </.form>
+          <% else %>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">
+              {budget_display(@project.budget, @project.currency)}
+            </span>
+            <span
+              :if={@project.bom_item_count > 0}
+              class="text-xs text-gray-400 dark:text-gray-500"
+            >
+              {Formatting.money(@project.bom_spent, @project.currency)} spent
+            </span>
+            <button
+              type="button"
+              phx-click="budget_edit"
+              id="budget-edit-trigger"
+              class="p-1 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
+              aria-label="Edit budget"
+            >
+              <.icon name="hero-pencil-square" class="size-3.5" />
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    """
+  end
 
   @spec summary_grid(map()) :: Phoenix.LiveView.Rendered.t()
   attr :task_counts, :map, required: true
   attr :project, :any, required: true
-  attr :bom_budget, :any, required: true
   attr :note_count, :integer, required: true
 
   def summary_grid(assigns) do
@@ -34,7 +203,7 @@ defmodule ForgeWeb.ProjectLive.Components do
     <div class="grid grid-cols-2 gap-4" id="project-summary">
       <.summary_card
         label="BOM"
-        value={bom_progress_label(@bom_budget)}
+        value={bom_progress_label(@project.bom_item_count, @project.received_bom_item_count)}
         icon="hero-shopping-cart"
         color="amber"
       />
@@ -539,15 +708,13 @@ defmodule ForgeWeb.ProjectLive.Components do
     end
   end
 
-  defp bom_progress_label(%{items: items}) do
-    total = Enum.count(items)
-    received = Enum.count(items, &(&1.status == :received))
-
+  defp bom_progress_label(total, received) do
     if total == 0, do: "No items", else: "#{received}/#{total} received"
   end
 
   @spec bom_component(map()) :: Phoenix.LiveView.Rendered.t()
   attr :sections_open, :map, required: true
+  attr :project, :any, required: true
   attr :bom_budget, :any, required: true
   attr :bom_form, :any, required: true
   attr :bom_form_open?, :boolean, required: true
@@ -573,7 +740,7 @@ defmodule ForgeWeb.ProjectLive.Components do
             <.icon name="hero-shopping-cart" class="size-4 text-gray-400" /> BOM
           </h2>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            {BomHelpers.budget_label(@bom_budget, @currency)}
+            {BomHelpers.budget_label(@project.bom_item_count, @project.bom_total, @currency)}
           </p>
         </div>
 

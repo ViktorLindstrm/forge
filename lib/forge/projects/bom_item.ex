@@ -32,7 +32,7 @@ defmodule Forge.Projects.BomItem do
       argument :project_id, :integer, allow_nil?: false
 
       filter expr(project_id == ^arg(:project_id))
-      prepare build(sort: [sort_order: :asc, inserted_at: :asc])
+      prepare build(sort: [sort_order: :asc])
     end
 
     create :create do
