@@ -168,13 +168,13 @@ defmodule ForgeWeb.ProjectLive.Show do
               </.form>
             <% else %>
               <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                {budget_display(@project.budget)}
+                {budget_display(@project.budget, @project.currency)}
               </span>
               <span
                 :if={@bom_budget.items != []}
                 class="text-xs text-gray-400 dark:text-gray-500"
               >
-                {Components.Formatting.money(@bom_budget.spent)} spent
+                {Components.Formatting.money(@bom_budget.spent, @project.currency)} spent
               </span>
               <button
                 type="button"
@@ -219,6 +219,9 @@ defmodule ForgeWeb.ProjectLive.Show do
               bom_budget={@bom_budget}
               bom_form={@bom_form}
               bom_form_open?={@bom_form_open?}
+              editing_bom_id={@editing_bom_id}
+              bom_edit_form={@bom_edit_form}
+              currency={@project.currency}
             />
           </div>
 
@@ -243,6 +246,9 @@ defmodule ForgeWeb.ProjectLive.Show do
               bom_budget={@bom_budget}
               bom_form={@bom_form}
               bom_form_open?={@bom_form_open?}
+              editing_bom_id={@editing_bom_id}
+              bom_edit_form={@bom_edit_form}
+              currency={@project.currency}
             />
           </div>
 
@@ -318,6 +324,8 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> assign(:note_edit_form, nil)
       |> assign(:task_form_open?, false)
       |> assign(:bom_form_open?, false)
+      |> assign(:editing_bom_id, nil)
+      |> assign(:bom_edit_form, nil)
       |> assign(:expanded_task_id, nil)
       |> assign(:editing_task_id, nil)
       |> assign(:task_edit_form, ForgeWeb.ProjectLive.Tasks.task_form())
@@ -987,6 +995,47 @@ defmodule ForgeWeb.ProjectLive.Show do
     end
   end
 
+  def handle_event("bom_edit_open", %{"id" => id}, socket) do
+    item = Projects.get_bom_item!(id)
+    form = ForgeWeb.ProjectLive.Bom.bom_edit_form(item)
+
+    {:noreply,
+     socket
+     |> assign(:editing_bom_id, item.id)
+     |> assign(:bom_edit_form, form)
+     |> assign(:bom_form_open?, false)}
+  end
+
+  def handle_event("bom_edit_cancel", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_bom_id, nil)
+     |> assign(:bom_edit_form, nil)}
+  end
+
+  def handle_event("bom_edit_validate", %{"bom_edit" => params}, socket) do
+    form =
+      AshPhoenix.Form.validate(socket.assigns.bom_edit_form.source, params) |> to_form()
+
+    {:noreply, assign(socket, :bom_edit_form, form)}
+  end
+
+  def handle_event("bom_edit_save", %{"bom_edit" => params}, socket) do
+    project_id = socket.assigns.project.id
+
+    case AshPhoenix.Form.submit(socket.assigns.bom_edit_form.source, params: params) do
+      {:ok, _item} ->
+        {:noreply,
+         socket
+         |> assign(:bom_budget, Projects.bom_budget(project_id))
+         |> assign(:editing_bom_id, nil)
+         |> assign(:bom_edit_form, nil)}
+
+      {:error, form} ->
+        {:noreply, assign(socket, :bom_edit_form, to_form(form))}
+    end
+  end
+
   def handle_event("toggle_section", %{"section" => "tasks"}, socket) do
     open = !socket.assigns.sections_open.tasks
     socket = assign(socket, :sections_open, %{socket.assigns.sections_open | tasks: open})
@@ -1074,7 +1123,7 @@ defmodule ForgeWeb.ProjectLive.Show do
   defp maybe_put_parent_task_id(params, parent_id),
     do: Map.put(params, "parent_task_id", parent_id)
 
-  @spec budget_display(Decimal.t() | nil) :: String.t()
-  defp budget_display(nil), do: "No budget set"
-  defp budget_display(%Decimal{} = d), do: "#{Decimal.to_string(d, :normal)} kr"
+  @spec budget_display(Decimal.t() | nil, String.t()) :: String.t()
+  defp budget_display(nil, _currency), do: "No budget set"
+  defp budget_display(%Decimal{} = d, currency), do: Components.Formatting.money(d, currency)
 end

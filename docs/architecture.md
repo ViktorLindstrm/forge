@@ -40,6 +40,7 @@ erDiagram
     Atom status
     Atom color
     Boolean tasks_enabled
+    String currency
     Integer？ project_group_id
   }
   "Forge.Projects.ProjectGroup"["ProjectGroup"] {

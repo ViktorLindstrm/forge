@@ -551,6 +551,9 @@ defmodule ForgeWeb.ProjectLive.Components do
   attr :bom_budget, :any, required: true
   attr :bom_form, :any, required: true
   attr :bom_form_open?, :boolean, required: true
+  attr :editing_bom_id, :any, required: true
+  attr :bom_edit_form, :any, required: true
+  attr :currency, :string, required: true
 
   def bom_component(assigns) do
     ~H"""
@@ -570,7 +573,7 @@ defmodule ForgeWeb.ProjectLive.Components do
             <.icon name="hero-shopping-cart" class="size-4 text-gray-400" /> BOM
           </h2>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            {BomHelpers.budget_label(@bom_budget)}
+            {BomHelpers.budget_label(@bom_budget, @currency)}
           </p>
         </div>
 
@@ -599,47 +602,152 @@ defmodule ForgeWeb.ProjectLive.Components do
             class="group rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
             id={"bom-item-#{item.id}"}
           >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {item.quantity} {item.unit || ""}
-                  <%= if item.unit_price do %>
-                    · {Formatting.money(BomHelpers.item_total(item))} total
-                  <% end %>
-                </p>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  phx-click="bom_toggle"
-                  phx-value-id={item.id}
-                  class={[
-                    "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
-                    BomHelpers.bom_status_classes(item.status)
-                  ]}
-                  id={"bom-toggle-#{item.id}"}
-                >
-                  <span class={["size-1.5 rounded-full", BomHelpers.bom_status_dot(item.status)]} />
-                  {String.capitalize(to_string(item.status))}
-                </button>
+            <%= if @editing_bom_id == item.id do %>
+              <.form
+                for={@bom_edit_form}
+                id={"bom-edit-form-#{item.id}"}
+                phx-submit="bom_edit_save"
+                phx-change="bom_edit_validate"
+              >
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <.field
+                    field={@bom_edit_form[:name]}
+                    type="text"
+                    label="Name"
+                    wrapper_class="!mb-0 flex items-center gap-3 px-0 py-2"
+                    label_class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                    class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                  />
+                  <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800">
+                    <.field
+                      field={@bom_edit_form[:quantity]}
+                      type="number"
+                      label="Qty"
+                      wrapper_class="!mb-0 flex items-center gap-3 px-0 py-2"
+                      label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                      class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                    />
+                    <div class="flex items-center gap-2 px-0 py-2 border-0">
+                      <span class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Price
+                      </span>
+                      <div class="flex items-center gap-0.5 flex-1 min-w-0">
+                        <%= if Formatting.currency_prefix?(@currency) do %>
+                          <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                            {Formatting.currency_symbol(@currency)}
+                          </span>
+                        <% end %>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name={@bom_edit_form[:unit_price].name}
+                          id={@bom_edit_form[:unit_price].id}
+                          value={
+                            Phoenix.HTML.Form.normalize_value(
+                              "number",
+                              @bom_edit_form[:unit_price].value
+                            )
+                          }
+                          class="w-16 min-w-0 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                        />
+                        <%= if !Formatting.currency_prefix?(@currency) do %>
+                          <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                            {Formatting.currency_symbol(@currency)}
+                          </span>
+                        <% end %>
+                      </div>
+                    </div>
+                    <.field
+                      field={@bom_edit_form[:supplier]}
+                      type="text"
+                      label="Supplier"
+                      wrapper_class="!mb-0 flex items-center gap-3 px-0 py-2"
+                      label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                      class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                    />
+                  </div>
+                  <.field
+                    field={@bom_edit_form[:link]}
+                    type="text"
+                    label="Link"
+                    wrapper_class="!mb-0 flex items-center gap-3 px-0 py-2"
+                    label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                    class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0"
+                  />
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    phx-click="bom_edit_cancel"
+                    id={"bom-edit-cancel-#{item.id}"}
+                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    id={"bom-edit-save-#{item.id}"}
+                    class="text-xs font-semibold text-violet-600 hover:text-violet-500"
+                  >
+                    Save
+                  </button>
+                </div>
+              </.form>
+            <% else %>
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {item.name}
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {item.quantity} {item.unit || ""}
+                    <%= if item.unit_price do %>
+                      · {Formatting.money(BomHelpers.item_total(item), item.currency || @currency)} total
+                    <% end %>
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    phx-click="bom_toggle"
+                    phx-value-id={item.id}
+                    class={[
+                      "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
+                      BomHelpers.bom_status_classes(item.status)
+                    ]}
+                    id={"bom-toggle-#{item.id}"}
+                  >
+                    <span class={["size-1.5 rounded-full", BomHelpers.bom_status_dot(item.status)]} />
+                    {String.capitalize(to_string(item.status))}
+                  </button>
 
-                <button
-                  type="button"
-                  phx-click="bom_delete"
-                  phx-value-id={item.id}
-                  data-confirm="Delete this item?"
-                  class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
-                  aria-label="Delete item"
-                  id={"bom-delete-#{item.id}"}
-                >
-                  <.icon name="hero-trash" class="size-4" />
-                </button>
+                  <button
+                    type="button"
+                    phx-click="bom_edit_open"
+                    phx-value-id={item.id}
+                    class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Edit item"
+                    id={"bom-edit-#{item.id}"}
+                  >
+                    <.icon name="hero-pencil" class="size-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    phx-click="bom_delete"
+                    phx-value-id={item.id}
+                    data-confirm="Delete this item?"
+                    class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Delete item"
+                    id={"bom-delete-#{item.id}"}
+                  >
+                    <.icon name="hero-trash" class="size-4" />
+                  </button>
+                </div>
               </div>
-            </div>
+            <% end %>
           </div>
         </div>
-
         <div class="flex justify-end mt-3">
           <button
             type="button"
@@ -678,46 +786,53 @@ defmodule ForgeWeb.ProjectLive.Components do
                   label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
                   class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
                 />
-                <.field
-                  field={@bom_form[:unit]}
-                  type="text"
-                  label="Unit"
-                  placeholder="pcs, m, kg"
-                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
-                  label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
-                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-                <.field
-                  field={@bom_form[:unit_price]}
-                  type="number"
-                  step="0.01"
-                  label="Price"
-                  placeholder="49.99"
-                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
-                  label_class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
-                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-              </div>
-              <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+                <div class="flex items-center gap-2 px-3 py-2">
+                  <span class="w-8 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Price
+                  </span>
+                  <div class="flex items-center gap-0.5 flex-1 min-w-0">
+                    <%= if Formatting.currency_prefix?(@currency) do %>
+                      <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                        {Formatting.currency_symbol(@currency)}
+                      </span>
+                    <% end %>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name={@bom_form[:unit_price].name}
+                      id={@bom_form[:unit_price].id}
+                      value={
+                        Phoenix.HTML.Form.normalize_value("number", @bom_form[:unit_price].value)
+                      }
+                      placeholder="49.99"
+                      class="w-16 min-w-0 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                    />
+                    <%= if !Formatting.currency_prefix?(@currency) do %>
+                      <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                        {Formatting.currency_symbol(@currency)}
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
                 <.field
                   field={@bom_form[:supplier]}
                   type="text"
                   label="Supplier"
                   placeholder="Mouser, Digikey…"
                   wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
-                  label_class="w-14 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
-                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-                <.field
-                  field={@bom_form[:link]}
-                  type="text"
-                  label="Link"
-                  placeholder="https://…"
-                  wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
-                  label_class="w-14 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                  label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
                   class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
                 />
               </div>
+              <.field
+                field={@bom_form[:link]}
+                type="text"
+                label="Link"
+                placeholder="https://…"
+                wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
+                label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
+                class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+              />
               <div class="flex items-start gap-3 px-3 py-2">
                 <label class="w-20 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
                   Notes

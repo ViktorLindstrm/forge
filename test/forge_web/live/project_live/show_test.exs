@@ -364,6 +364,121 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
     end
   end
 
+  # ── BOM edit events ───────────────────────────────────────────────────────
+
+  describe "BOM edit events" do
+    property "bom_edit_open renders inline edit form with current values" do
+      check all(item_name <- name_generator()) do
+        project = create_project!()
+        item = create_bom_item!(project, item_name)
+
+        {:ok, lv, _} = mount_show(project)
+
+        html = lv |> element("#bom-edit-#{item.id}") |> render_click()
+
+        assert html =~ "bom-edit-form-#{item.id}"
+        assert html =~ item_name
+      end
+    end
+
+    property "bom_edit_cancel closes the inline form" do
+      check all(item_name <- name_generator()) do
+        project = create_project!()
+        item = create_bom_item!(project, item_name)
+
+        {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#bom-edit-#{item.id}") |> render_click()
+
+        html = lv |> element("#bom-edit-cancel-#{item.id}") |> render_click()
+
+        refute html =~ "bom-edit-form-#{item.id}"
+        assert html =~ item_name
+      end
+    end
+
+    property "bom_edit_save updates item name on the page" do
+      check all(
+              item_name <- name_generator(),
+              new_name <- name_generator()
+            ) do
+        project = create_project!()
+        item = create_bom_item!(project, item_name)
+
+        {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#bom-edit-#{item.id}") |> render_click()
+
+        html =
+          lv
+          |> form("#bom-edit-form-#{item.id}",
+            bom_edit: %{name: new_name, quantity: 1}
+          )
+          |> render_submit()
+
+        assert html =~ new_name
+        refute html =~ "bom-edit-form-#{item.id}"
+      end
+    end
+
+    property "bom_edit_save persists change to database" do
+      check all(
+              item_name <- name_generator(),
+              new_name <- name_generator()
+            ) do
+        project = create_project!()
+        item = create_bom_item!(project, item_name)
+
+        {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#bom-edit-#{item.id}") |> render_click()
+
+        lv
+        |> form("#bom-edit-form-#{item.id}",
+          bom_edit: %{name: new_name, quantity: 1}
+        )
+        |> render_submit()
+
+        updated = Projects.get_bom_item!(item.id)
+        assert updated.name == new_name
+      end
+    end
+
+    property "bom_edit_open closes the add-item form if open" do
+      check all(item_name <- name_generator()) do
+        project = create_project!()
+        item = create_bom_item!(project, item_name)
+
+        {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#bom-add-trigger") |> render_click()
+        html = lv |> element("#bom-edit-#{item.id}") |> render_click()
+
+        refute html =~ "bom-quick-form"
+        assert html =~ "bom-edit-form-#{item.id}"
+      end
+    end
+
+    property "only one edit form is shown at a time when multiple items exist" do
+      check all(
+              name_a <- name_generator(),
+              name_b <- name_generator()
+            ) do
+        project = create_project!()
+        item_a = create_bom_item!(project, name_a)
+        item_b = create_bom_item!(project, name_b)
+
+        {:ok, lv, _} = mount_show(project)
+
+        lv |> element("#bom-edit-#{item_a.id}") |> render_click()
+        html = lv |> element("#bom-edit-#{item_b.id}") |> render_click()
+
+        refute html =~ "bom-edit-form-#{item_a.id}"
+        assert html =~ "bom-edit-form-#{item_b.id}"
+      end
+    end
+  end
+
   # ── task events ───────────────────────────────────────────────────────────
 
   describe "task events" do

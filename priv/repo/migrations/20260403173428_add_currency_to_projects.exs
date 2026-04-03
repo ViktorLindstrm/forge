@@ -1,4 +1,4 @@
-defmodule Forge.Repo.Migrations.MigrateResources2Dev do
+defmodule Forge.Repo.Migrations.AddCurrencyToProjects do
   @moduledoc """
   Updates resources based on their most recent snapshots.
 
@@ -9,13 +9,13 @@ defmodule Forge.Repo.Migrations.MigrateResources2Dev do
 
   def up do
     alter table(:projects) do
-      add :tasks_enabled, :boolean, null: false, default: false
+      add :currency, :text, null: false, default: "SEK"
     end
   end
 
   def down do
     alter table(:projects) do
-      remove :tasks_enabled
+      remove :currency
     end
   end
 end

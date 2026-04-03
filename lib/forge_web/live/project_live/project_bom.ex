@@ -9,4 +9,13 @@ defmodule ForgeWeb.ProjectLive.Bom do
     )
     |> Phoenix.Component.to_form()
   end
+
+  @spec bom_edit_form(Forge.Projects.BomItem.t()) :: Phoenix.HTML.Form.t()
+  def bom_edit_form(%Forge.Projects.BomItem{} = item) do
+    AshPhoenix.Form.for_update(item, :update,
+      domain: Projects,
+      as: "bom_edit"
+    )
+    |> Phoenix.Component.to_form()
+  end
 end
