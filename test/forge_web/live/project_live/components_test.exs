@@ -27,6 +27,16 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
     )
   end
 
+  defp formatted_number_str(amount) do
+    rounded = Decimal.round(amount, 2)
+
+    if Decimal.equal?(rounded, Decimal.round(rounded, 0)) do
+      rounded |> Decimal.round(0) |> Decimal.to_string(:normal)
+    else
+      Decimal.to_string(rounded, :normal)
+    end
+  end
+
   describe "Formatting.currency_prefix?/1" do
     property "suffix currencies return false" do
       check all(currency <- one_of(Enum.map(@suffix_currencies, &constant/1))) do
@@ -51,7 +61,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
             ) do
         result = Formatting.money(amount, currency)
         symbol = Formatting.currency_symbol(currency)
-        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+        number_str = formatted_number_str(amount)
 
         assert String.ends_with?(result, symbol),
                "#{currency}: expected '#{result}' to end with '#{symbol}'"
@@ -71,7 +81,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
             ) do
         result = Formatting.money(amount, currency)
         symbol = Formatting.currency_symbol(currency)
-        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+        number_str = formatted_number_str(amount)
 
         assert String.starts_with?(result, symbol),
                "#{currency}: expected '#{result}' to start with '#{symbol}'"
@@ -109,7 +119,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
         assert is_binary(result) and result != "",
                "#{currency}: money/2 returned empty string"
 
-        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+        number_str = formatted_number_str(amount)
 
         assert String.contains?(result, number_str),
                "#{currency}: expected result to contain '#{number_str}', got '#{result}'"

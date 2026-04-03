@@ -70,6 +70,8 @@ If you find yourself writing JavaScript to work around a server-side state probl
 - Use stable, small, focused tests with clear DOM IDs and selectors when testing UI.
 - When needed, use `Phoenix.LiveViewTest` and element-based assertions instead of testing raw HTML directly.
 - Whenever a new feature or function is added, create additional StreamData property based tests to validate.
+- **Test expectations must mirror implementation logic**: When a test asserts that output contains or matches a derived value (e.g. a formatted number, a transformed string), compute that expected value using the same logic the implementation uses — not a different formula that may diverge for edge cases (e.g. `Decimal.new("0.00")` → `"0"` when trailing zeros are stripped). Extract a private helper in the test module to avoid duplicating this logic across multiple test cases.
+- **Do not assert on intermediate representations**: Assert on the final output of the function under test, using the same transformation pipeline the function itself applies. Never assume a function preserves an intermediate form (e.g. two decimal places) if the implementation normalises it.
 
 ### Integration tests for every feature
 - Every new feature or significant change **must** include at least one end-to-end StreamData integration test that exercises the full user flow in a single `check all` block.
