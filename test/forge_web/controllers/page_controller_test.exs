@@ -1,8 +1,11 @@
 defmodule ForgeWeb.PageControllerTest do
   use ForgeWeb.ConnCase, async: true
+  use ExUnitProperties
 
-  test "GET / redirects to projects", %{conn: conn} do
-    conn = get(conn, ~p"/")
-    assert redirected_to(conn, 302) == ~p"/projects"
+  property "GET / redirects to /projects", %{conn: conn} do
+    check all(_ <- constant(:ok)) do
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn, 302) == ~p"/projects"
+    end
   end
 end

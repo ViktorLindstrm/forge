@@ -100,12 +100,16 @@ defmodule Forge.Projects.TaskTest do
   end
 
   describe "statuses/0 and priorities/0" do
-    test "returns all expected statuses" do
-      assert Task.statuses() == @statuses
+    property "returns all expected statuses" do
+      check all(_ <- constant(:ok)) do
+        assert Task.statuses() == @statuses
+      end
     end
 
-    test "returns all expected priorities" do
-      assert Task.priorities() == @priorities
+    property "returns all expected priorities" do
+      check all(_ <- constant(:ok)) do
+        assert Task.priorities() == @priorities
+      end
     end
   end
 

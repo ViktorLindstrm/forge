@@ -5,40 +5,52 @@ defmodule ForgeWeb.MarkdownTest do
   alias ForgeWeb.Markdown
 
   describe "render/1" do
-    test "returns empty safe HTML for nil" do
-      result = Markdown.render(nil)
-      assert Phoenix.HTML.safe_to_string(result) == ""
+    property "returns empty safe HTML for nil input" do
+      check all(_ <- constant(nil)) do
+        result = Markdown.render(nil)
+        assert Phoenix.HTML.safe_to_string(result) == ""
+      end
     end
 
-    test "renders bold markdown" do
-      result = Markdown.render("**hello**")
-      html = Phoenix.HTML.safe_to_string(result)
-      assert html =~ "<strong>hello</strong>"
+    property "renders bold markdown with **text** syntax" do
+      check all(word <- string(:alphanumeric, min_length: 1, max_length: 40)) do
+        result = Markdown.render("**#{word}**")
+        html = Phoenix.HTML.safe_to_string(result)
+        assert html =~ "<strong>#{word}</strong>"
+      end
     end
 
-    test "renders inline code" do
-      result = Markdown.render("`code`")
-      html = Phoenix.HTML.safe_to_string(result)
-      assert html =~ "<code"
-      assert html =~ ">code<"
+    property "renders inline code with backtick syntax" do
+      check all(word <- string(:alphanumeric, min_length: 1, max_length: 40)) do
+        result = Markdown.render("`#{word}`")
+        html = Phoenix.HTML.safe_to_string(result)
+        assert html =~ "<code"
+        assert html =~ ">#{word}<"
+      end
     end
 
-    test "renders italic markdown" do
-      result = Markdown.render("_italic_")
-      html = Phoenix.HTML.safe_to_string(result)
-      assert html =~ "<em>italic</em>"
+    property "renders italic markdown with _text_ syntax" do
+      check all(word <- string(:alphanumeric, min_length: 1, max_length: 40)) do
+        result = Markdown.render("_#{word}_")
+        html = Phoenix.HTML.safe_to_string(result)
+        assert html =~ "<em>#{word}</em>"
+      end
     end
 
-    test "strips script tags for XSS prevention" do
-      result = Markdown.render("<script>alert('xss')</script>")
-      html = Phoenix.HTML.safe_to_string(result)
-      refute html =~ "<script>"
+    property "strips script tags for XSS prevention" do
+      check all(payload <- string(:alphanumeric, min_length: 0, max_length: 50)) do
+        result = Markdown.render("<script>#{payload}</script>")
+        html = Phoenix.HTML.safe_to_string(result)
+        refute html =~ "<script>"
+      end
     end
 
-    test "strips javascript href for XSS prevention" do
-      result = Markdown.render("[click](javascript:alert(1))")
-      html = Phoenix.HTML.safe_to_string(result)
-      refute html =~ "javascript:"
+    property "strips javascript: hrefs for XSS prevention" do
+      check all(label <- string(:alphanumeric, min_length: 1, max_length: 20)) do
+        result = Markdown.render("[#{label}](javascript:alert(1))")
+        html = Phoenix.HTML.safe_to_string(result)
+        refute html =~ "javascript:"
+      end
     end
 
     property "always returns a Phoenix.HTML.safe value for any printable single-line string" do

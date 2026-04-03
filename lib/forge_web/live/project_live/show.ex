@@ -228,6 +228,8 @@ defmodule ForgeWeb.ProjectLive.Show do
               project={@project}
               note_form={@note_form}
               note_form_open?={@note_form_open?}
+              note_preview?={@note_preview?}
+              note_preview_body={@note_preview_body}
               streams={@streams}
               notes_empty?={@notes_empty?}
               note_page={@note_page}
@@ -250,6 +252,8 @@ defmodule ForgeWeb.ProjectLive.Show do
               project={@project}
               note_form={@note_form}
               note_form_open?={@note_form_open?}
+              note_preview?={@note_preview?}
+              note_preview_body={@note_preview_body}
               streams={@streams}
               notes_empty?={@notes_empty?}
               note_page={@note_page}
@@ -308,6 +312,8 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> assign(:pinned_upcoming_task, pinned_upcoming_task)
       |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
       |> assign(:note_form_open?, false)
+      |> assign(:note_preview?, false)
+      |> assign(:note_preview_body, "")
       |> assign(:editing_note_id, nil)
       |> assign(:note_edit_form, nil)
       |> assign(:task_form_open?, false)
@@ -776,7 +782,32 @@ defmodule ForgeWeb.ProjectLive.Show do
   end
 
   def handle_event("toggle_note_form", _params, socket) do
-    {:noreply, assign(socket, :note_form_open?, !socket.assigns.note_form_open?)}
+    {:noreply,
+     socket
+     |> assign(:note_form_open?, !socket.assigns.note_form_open?)
+     |> assign(:note_preview?, false)
+     |> assign(:note_preview_body, "")}
+  end
+
+  def handle_event("note_preview_toggle", %{"tab" => "preview"}, socket) do
+    body = socket.assigns.note_preview_body
+
+    updated_form =
+      AshPhoenix.Form.validate(socket.assigns.note_form.source, %{"body" => body})
+      |> to_form()
+
+    {:noreply,
+     socket
+     |> assign(:note_preview?, true)
+     |> assign(:note_form, updated_form)}
+  end
+
+  def handle_event("note_preview_toggle", %{"tab" => "write"}, socket) do
+    {:noreply, assign(socket, :note_preview?, false)}
+  end
+
+  def handle_event("note_body_change", %{"note" => %{"body" => body}}, socket) do
+    {:noreply, assign(socket, :note_preview_body, body)}
   end
 
   def handle_event("toggle_task_form", _params, socket) do
@@ -806,6 +837,8 @@ defmodule ForgeWeb.ProjectLive.Show do
          |> assign(:notes_empty?, entries == [])
          |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
          |> assign(:note_form_open?, false)
+         |> assign(:note_preview?, false)
+         |> assign(:note_preview_body, "")
          |> stream(:journal_entries, entries, reset: true)}
 
       {:error, form} ->
