@@ -1,12 +1,17 @@
 defmodule ForgeWeb.ErrorJSONTest do
   use ForgeWeb.ConnCase, async: true
+  use ExUnitProperties
 
-  test "renders 404" do
-    assert ForgeWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+  property "renders 404 as not found JSON" do
+    check all(_ <- constant(:ok)) do
+      assert ForgeWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+    end
   end
 
-  test "renders 500" do
-    assert ForgeWeb.ErrorJSON.render("500.json", %{}) ==
-             %{errors: %{detail: "Internal Server Error"}}
+  property "renders 500 as internal server error JSON" do
+    check all(_ <- constant(:ok)) do
+      assert ForgeWeb.ErrorJSON.render("500.json", %{}) ==
+               %{errors: %{detail: "Internal Server Error"}}
+    end
   end
 end

@@ -121,12 +121,16 @@ defmodule Forge.Projects.ProjectTest do
   end
 
   describe "statuses/0 and colors/0" do
-    test "returns all expected statuses" do
-      assert Project.statuses() == @statuses
+    property "returns all expected statuses" do
+      check all(_ <- constant(:ok)) do
+        assert Project.statuses() == @statuses
+      end
     end
 
-    test "returns all expected colors" do
-      assert Project.colors() == @colors
+    property "returns all expected colors" do
+      check all(_ <- constant(:ok)) do
+        assert Project.colors() == @colors
+      end
     end
   end
 end

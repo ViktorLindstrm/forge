@@ -1,14 +1,18 @@
 defmodule ForgeWeb.ErrorHTMLTest do
   use ForgeWeb.ConnCase, async: true
+  use ExUnitProperties
 
-  # Bring render_to_string/4 for testing custom views
   import Phoenix.Template, only: [render_to_string: 4]
 
-  test "renders 404.html" do
-    assert render_to_string(ForgeWeb.ErrorHTML, "404", "html", []) == "Not Found"
+  property "renders 404.html as Not Found" do
+    check all(_ <- constant(:ok)) do
+      assert render_to_string(ForgeWeb.ErrorHTML, "404", "html", []) == "Not Found"
+    end
   end
 
-  test "renders 500.html" do
-    assert render_to_string(ForgeWeb.ErrorHTML, "500", "html", []) == "Internal Server Error"
+  property "renders 500.html as Internal Server Error" do
+    check all(_ <- constant(:ok)) do
+      assert render_to_string(ForgeWeb.ErrorHTML, "500", "html", []) == "Internal Server Error"
+    end
   end
 end

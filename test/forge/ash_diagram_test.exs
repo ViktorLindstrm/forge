@@ -1,5 +1,6 @@
 defmodule Forge.AshDiagramTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   @moduletag :schema
   @moduledoc """
@@ -39,18 +40,10 @@ defmodule Forge.AshDiagramTest do
   }
 
   describe "public attributes (required for AshDiagram to render fields)" do
-    for resource <- [
-          Forge.Projects.Project,
-          Forge.Projects.ProjectGroup,
-          Forge.Projects.Task,
-          Forge.Projects.BomItem,
-          Forge.Projects.JournalEntry
-        ] do
-      test "#{inspect(resource)} has all expected attributes marked public?" do
-        resource = unquote(resource)
+    property "every resource has all expected attributes marked public?" do
+      check all(resource <- member_of(@resources)) do
         expected = @expected_public_attributes[resource]
         public_names = Ash.Resource.Info.public_attributes(resource) |> Enum.map(& &1.name)
-
         missing = expected -- public_names
 
         assert missing == [],
@@ -60,18 +53,10 @@ defmodule Forge.AshDiagramTest do
   end
 
   describe "public relationships (required for AshDiagram to render edges)" do
-    for resource <- [
-          Forge.Projects.Project,
-          Forge.Projects.ProjectGroup,
-          Forge.Projects.Task,
-          Forge.Projects.BomItem,
-          Forge.Projects.JournalEntry
-        ] do
-      test "#{inspect(resource)} has all expected relationships marked public?" do
-        resource = unquote(resource)
+    property "every resource has all expected relationships marked public?" do
+      check all(resource <- member_of(@resources)) do
         expected = @expected_public_relationships[resource]
         public_names = Ash.Resource.Info.public_relationships(resource) |> Enum.map(& &1.name)
-
         missing = expected -- public_names
 
         assert missing == [],
@@ -81,34 +66,39 @@ defmodule Forge.AshDiagramTest do
   end
 
   describe "FK on_delete constraints" do
-    test "Task.parent_task uses on_delete: :delete (matches DB CASCADE)" do
-      refs = AshPostgres.DataLayer.Info.references(Forge.Projects.Task)
-      ref = Enum.find(refs, &(&1.relationship == :parent_task))
+    property "Task.parent_task uses on_delete: :delete (matches DB CASCADE)" do
+      check all(_ <- constant(:ok)) do
+        refs = AshPostgres.DataLayer.Info.references(Forge.Projects.Task)
+        ref = Enum.find(refs, &(&1.relationship == :parent_task))
 
-      assert ref != nil, "No postgres reference declared for Task.parent_task"
+        assert ref != nil, "No postgres reference declared for Task.parent_task"
 
-      assert ref.on_delete == :delete,
-             "Task.parent_task on_delete should be :delete, got #{inspect(ref.on_delete)}"
+        assert ref.on_delete == :delete,
+               "Task.parent_task on_delete should be :delete, got #{inspect(ref.on_delete)}"
+      end
     end
 
-    test "Project.project_group uses on_delete: :nilify (matches DB SET NULL)" do
-      refs = AshPostgres.DataLayer.Info.references(Forge.Projects.Project)
-      ref = Enum.find(refs, &(&1.relationship == :project_group))
+    property "Project.project_group uses on_delete: :nilify (matches DB SET NULL)" do
+      check all(_ <- constant(:ok)) do
+        refs = AshPostgres.DataLayer.Info.references(Forge.Projects.Project)
+        ref = Enum.find(refs, &(&1.relationship == :project_group))
 
-      assert ref != nil, "No postgres reference declared for Project.project_group"
+        assert ref != nil, "No postgres reference declared for Project.project_group"
 
-      assert ref.on_delete == :nilify,
-             "Project.project_group on_delete should be :nilify, got #{inspect(ref.on_delete)}"
+        assert ref.on_delete == :nilify,
+               "Project.project_group on_delete should be :nilify, got #{inspect(ref.on_delete)}"
+      end
     end
   end
 
   describe "all resources are registered in the Projects domain" do
-    test "Forge.Projects domain includes all expected resources" do
-      registered = Ash.Domain.Info.resources(Forge.Projects)
-      missing = @resources -- registered
+    property "every expected resource is registered in Forge.Projects domain" do
+      check all(resource <- member_of(@resources)) do
+        registered = Ash.Domain.Info.resources(Forge.Projects)
 
-      assert missing == [],
-             "Resources not registered in Forge.Projects domain: #{inspect(missing)}"
+        assert resource in registered,
+               "#{inspect(resource)} is not registered in Forge.Projects domain"
+      end
     end
   end
 end

@@ -13,8 +13,6 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
   defp color_generator, do: one_of(Enum.map(@colors, &constant/1))
   defp status_generator, do: one_of(Enum.map(@statuses, &constant/1))
 
-  # ── color_bg/1 ────────────────────────────────────────────────────────────
-
   describe "color_bg/1" do
     property "returns a non-empty CSS string for every defined color" do
       check all(color <- color_generator()) do
@@ -24,25 +22,31 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
       end
     end
 
-    test "returns distinct CSS strings for each color" do
-      results = Enum.map(@colors, &Components.color_bg/1)
-      assert length(Enum.uniq(results)) == length(@colors)
+    property "returns distinct CSS strings for all defined colors" do
+      check all(_ <- constant(:ok)) do
+        results = Enum.map(@colors, &Components.color_bg/1)
+        assert length(Enum.uniq(results)) == length(@colors)
+      end
     end
 
-    test "returns fallback gray gradient for unknown color" do
-      result = Components.color_bg(:unknown)
-      assert result == "bg-gradient-to-r from-gray-200 via-gray-400 to-gray-500"
+    property "returns fallback gray gradient for any unknown color atom" do
+      check all(
+              color <-
+                atom(:alphanumeric)
+                |> StreamData.filter(&(&1 not in @colors))
+            ) do
+        result = Components.color_bg(color)
+        assert result == "bg-gradient-to-r from-gray-200 via-gray-400 to-gray-500"
+      end
     end
 
-    test "returns gradient strings using from-/to- Tailwind classes" do
-      for color <- @colors do
+    property "returns gradient strings with from-/to- Tailwind classes for all defined colors" do
+      check all(color <- color_generator()) do
         result = Components.color_bg(color)
         assert String.starts_with?(result, "bg-gradient-to-r from-")
       end
     end
   end
-
-  # ── url_display/1 ─────────────────────────────────────────────────────────
 
   describe "url_display/1" do
     property "strips http:// prefix" do
@@ -71,35 +75,29 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
       end
     end
 
-    test "leaves URLs without trailing slash unchanged (after prefix strip)" do
-      assert Components.url_display("https://example.com") == "example.com"
+    property "leaves URLs without trailing slash unchanged after prefix strip" do
+      check all(_ <- constant(:ok)) do
+        assert Components.url_display("https://example.com") == "example.com"
+      end
     end
 
-    test "handles URL with path segments" do
-      assert Components.url_display("https://github.com/user/repo") == "github.com/user/repo"
+    property "handles URLs with path segments" do
+      check all(_ <- constant(:ok)) do
+        assert Components.url_display("https://github.com/user/repo") == "github.com/user/repo"
+      end
     end
   end
-
-  # ── bom_form/0 ──────────────────────────────────────────────────────────
 
   describe "bom_form/0" do
-    test "returns a Phoenix.HTML.Form struct" do
-      form = Components.bom_form()
-      assert %Phoenix.HTML.Form{} = form
-    end
-
-    test "form source is an AshPhoenix.Form" do
-      form = Components.bom_form()
-      assert %AshPhoenix.Form{} = form.source
-    end
-
-    test "form name is 'bom'" do
-      form = Components.bom_form()
-      assert form.name == "bom"
+    property "returns a Phoenix.HTML.Form backed by AshPhoenix.Form with name 'bom'" do
+      check all(_ <- constant(:ok)) do
+        form = Components.bom_form()
+        assert %Phoenix.HTML.Form{} = form
+        assert %AshPhoenix.Form{} = form.source
+        assert form.name == "bom"
+      end
     end
   end
-
-  # ── status badge colour consistency ────────────────────────────────────────
 
   describe "status_badge color consistency" do
     property "status_badge renders for all project statuses without raising" do
@@ -110,8 +108,6 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
       end
     end
   end
-
-  # ── pill renders for task statuses and priorities ──────────────────────────
 
   describe "pill/1" do
     property "pill renders for all task statuses" do
@@ -129,13 +125,9 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
         assert is_struct(rendered, Phoenix.LiveView.Rendered)
       end
     end
-  end
 
-  # ── bom_status consistency ─────────────────────────────────────────────────
-
-  describe "bom status visual helpers" do
-    test "all BOM statuses render via pill without raising" do
-      for status <- @bom_statuses do
+    property "pill renders for all BOM statuses without raising" do
+      check all(status <- one_of(Enum.map(@bom_statuses, &constant/1))) do
         assigns = %{kind: "status", value: status, __changed__: nil}
         rendered = Components.pill(assigns)
         assert is_struct(rendered, Phoenix.LiveView.Rendered)

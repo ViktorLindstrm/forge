@@ -128,8 +128,10 @@ defmodule Forge.Projects.BomItemTest do
   end
 
   describe "statuses/0" do
-    test "returns all expected statuses" do
-      assert BomItem.statuses() == @statuses
+    property "returns all expected statuses" do
+      check all(_ <- constant(:ok)) do
+        assert BomItem.statuses() == @statuses
+      end
     end
   end
 end

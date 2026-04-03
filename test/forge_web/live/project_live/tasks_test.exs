@@ -13,13 +13,15 @@ defmodule ForgeWeb.ProjectLive.TasksTest do
   defp title_generator, do: string(:printable, min_length: 1, max_length: 100)
 
   describe "task_form/0" do
-    test "returns a Phoenix.HTML.Form backed by AshPhoenix.Form for :create" do
-      form = Tasks.task_form()
-      assert %Phoenix.HTML.Form{} = form
-      assert %AshPhoenix.Form{} = form.source
-      assert form.source.resource == Forge.Projects.Task
-      assert form.source.action == :create
-      assert form.name == "task"
+    property "returns a Phoenix.HTML.Form backed by AshPhoenix.Form for :create" do
+      check all(_ <- constant(:ok)) do
+        form = Tasks.task_form()
+        assert %Phoenix.HTML.Form{} = form
+        assert %AshPhoenix.Form{} = form.source
+        assert form.source.resource == Forge.Projects.Task
+        assert form.source.action == :create
+        assert form.name == "task"
+      end
     end
   end
 

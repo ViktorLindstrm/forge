@@ -2456,6 +2456,9 @@
   .h-full {
     height: 100%;
   }
+  .min-h-\[6rem\] {
+    min-height: 6rem;
+  }
   .min-h-screen {
     min-height: 100vh;
   }
@@ -2479,6 +2482,9 @@
   }
   .w-14 {
     width: calc(var(--spacing) * 14);
+  }
+  .w-16 {
+    width: calc(var(--spacing) * 16);
   }
   .w-20 {
     width: calc(var(--spacing) * 20);

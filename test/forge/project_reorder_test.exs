@@ -362,10 +362,16 @@ defmodule Forge.ProjectReorderTest do
       end
     end
 
-    test "fallback color returns a gradient string" do
-      result = ForgeWeb.ProjectLive.Components.Badges.color_bg(:unknown)
-      assert is_binary(result)
-      assert String.contains?(result, "bg-gradient-to-r")
+    property "fallback color returns a gradient string for any unknown atom" do
+      check all(
+              color <-
+                atom(:alphanumeric)
+                |> StreamData.filter(&(&1 not in Project.colors()))
+            ) do
+        result = ForgeWeb.ProjectLive.Components.Badges.color_bg(color)
+        assert is_binary(result)
+        assert String.contains?(result, "bg-gradient-to-r")
+      end
     end
   end
 end

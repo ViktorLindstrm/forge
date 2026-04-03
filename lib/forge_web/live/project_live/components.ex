@@ -751,6 +751,8 @@ defmodule ForgeWeb.ProjectLive.Components do
   attr :project, :any, required: true
   attr :note_form, :any, required: true
   attr :note_form_open?, :boolean, required: true
+  attr :note_preview?, :boolean, required: true
+  attr :note_preview_body, :string, required: true
   attr :note_page, :integer, required: true
   attr :note_total_pages, :integer, required: true
   attr :streams, :map, required: true
@@ -912,19 +914,68 @@ defmodule ForgeWeb.ProjectLive.Components do
             if(@note_form_open?, do: "", else: "hidden")
           ]}
         >
-          <.form for={@note_form} id="note-quick-form" phx-submit="note_create">
-            <div class="px-3 pt-3 pb-2">
-              <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">
-                Markdown supported — <span class="font-mono">**bold**</span>, <span class="font-mono">`code`</span>,
-                <span class="font-mono">_italic_</span>
-              </p>
+          <.form
+            for={@note_form}
+            id="note-quick-form"
+            phx-submit="note_create"
+            phx-change="note_body_change"
+          >
+            <div class="flex items-center gap-3 px-3 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                phx-click="note_preview_toggle"
+                phx-value-tab="write"
+                id="note-tab-write"
+                class={[
+                  "text-xs font-medium transition-colors",
+                  if(!@note_preview?,
+                    do: "text-violet-600 dark:text-violet-400",
+                    else: "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  )
+                ]}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                phx-click="note_preview_toggle"
+                phx-value-tab="preview"
+                id="note-tab-preview"
+                class={[
+                  "text-xs font-medium transition-colors",
+                  if(@note_preview?,
+                    do: "text-violet-600 dark:text-violet-400",
+                    else: "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  )
+                ]}
+              >
+                Preview
+              </button>
+            </div>
+            <div class="px-3 pt-2 pb-2">
               <textarea
                 name={@note_form[:body].name}
                 id={@note_form[:body].id}
                 rows="4"
                 placeholder="What's on your mind?"
-                class="w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white resize-none leading-relaxed"
+                class={[
+                  "w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white resize-none leading-relaxed",
+                  if(@note_preview?, do: "hidden", else: "")
+                ]}
               >{Phoenix.HTML.Form.normalize_value("textarea", @note_form[:body].value)}</textarea>
+              <div
+                id="note-preview-pane"
+                class={[
+                  "min-h-[6rem] prose prose-sm dark:prose-invert max-w-none",
+                  if(@note_preview?, do: "", else: "hidden")
+                ]}
+              >
+                <%= if @note_preview_body == "" do %>
+                  <p class="text-gray-400 dark:text-gray-500 text-sm">—</p>
+                <% else %>
+                  {ForgeWeb.Markdown.render(@note_preview_body)}
+                <% end %>
+              </div>
             </div>
             <div class="flex items-center justify-end gap-3 px-3 py-2 border-t border-gray-100 dark:border-gray-800">
               <button
