@@ -477,8 +477,8 @@ defmodule Forge.ProjectsIntegrationTest do
         total = Projects.count_journal_entries(project.id)
         assert total >= length(bodies)
 
-        page1 = Projects.list_journal_entries_page(project.id, 1, 2)
-        page2 = Projects.list_journal_entries_page(project.id, 2, 2)
+        %{entries: page1} = Projects.list_journal_entries_page(project.id, 1, 2)
+        %{entries: page2} = Projects.list_journal_entries_page(project.id, 2, 2)
 
         assert length(page1) == 2
         page1_ids = MapSet.new(page1, & &1.id)
