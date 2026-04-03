@@ -1,7 +1,7 @@
 defmodule ForgeWeb.ProjectLive.Components.BomHelpers do
   @moduledoc false
 
-  import ForgeWeb.ProjectLive.Components.Formatting, only: [money: 1]
+  import ForgeWeb.ProjectLive.Components.Formatting, only: [money: 2]
 
   alias Forge.Projects.BomItem
 
@@ -28,9 +28,9 @@ defmodule ForgeWeb.ProjectLive.Components.BomHelpers do
     Decimal.mult(price, Decimal.new(item.quantity))
   end
 
-  @spec budget_label(Forge.Projects.bom_budget()) :: String.t()
-  def budget_label(%{items: items, spent: spent}) do
+  @spec budget_label(Forge.Projects.bom_budget(), String.t()) :: String.t()
+  def budget_label(%{items: items, spent: spent}, currency \\ "SEK") do
     count = length(items)
-    "#{count} #{if count == 1, do: "item", else: "items"} · #{money(spent)} total"
+    "#{count} #{if count == 1, do: "item", else: "items"} · #{money(spent, currency)} total"
   end
 end

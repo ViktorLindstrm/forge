@@ -20,6 +20,8 @@ defmodule ForgeWeb.ProjectLive.Form do
     {"✅ Done", :done}
   ]
 
+  @currencies Forge.Projects.Project.currencies()
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -191,6 +193,31 @@ defmodule ForgeWeb.ProjectLive.Form do
               </div>
             </div>
 
+            <%!-- Currency selector --%>
+            <div class="flex items-center gap-3">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 w-36 shrink-0">
+                Currency
+              </label>
+              <select
+                id="currency-select"
+                phx-change="set_currency"
+                name="currency"
+                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              >
+                <%= for currency <- @currencies do %>
+                  <option
+                    value={currency}
+                    selected={
+                      (@project && @project.currency == currency) ||
+                        (is_nil(@project) && currency == "SEK")
+                    }
+                  >
+                    {currency}
+                  </option>
+                <% end %>
+              </select>
+            </div>
+
             <%!-- Notes --%>
             <.input
               field={@form[:notes]}
@@ -229,6 +256,7 @@ defmodule ForgeWeb.ProjectLive.Form do
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(:colors, @colors)
      |> assign(:statuses, @statuses)
+     |> assign(:currencies, @currencies)
      |> assign(:groups, Projects.list_project_groups())
      |> assign(:show_new_group, false)
      |> apply_action(socket.assigns.live_action, params)}
@@ -307,6 +335,25 @@ defmodule ForgeWeb.ProjectLive.Form do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not toggle tasks setting")}
+    end
+  end
+
+  def handle_event("set_currency", %{"currency" => currency}, socket) do
+    project = socket.assigns.project
+
+    if project do
+      case Projects.update_project(project, %{"currency" => currency}) do
+        {:ok, updated} ->
+          form =
+            AshPhoenix.Form.for_update(updated, :update, domain: Forge.Projects) |> to_form()
+
+          {:noreply, assign(socket, project: updated, form: form)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not update currency")}
+      end
+    else
+      {:noreply, socket}
     end
   end
 

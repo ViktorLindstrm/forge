@@ -134,6 +134,18 @@
     },
     {
       "allow_nil?": false,
+      "default": "\"SEK\"",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "currency",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
       "precision": null,
@@ -194,7 +206,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "DCFEEC5FD5106E9124C94B92E6D2367AFA7EDA3C347A67EFF2D41DD9CF1C4C26",
+  "hash": "C92DA1CD63ECBA184954C28D02ABC7A7D1ED446E311F00B9B9C530BCB9B0A843",
   "identities": [],
   "multitenancy": {
     "attribute": null,

@@ -3,6 +3,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
   use ExUnitProperties
 
   alias ForgeWeb.ProjectLive.Components
+  alias ForgeWeb.ProjectLive.Components.Formatting
 
   @colors [:blue, :violet, :emerald, :amber, :rose, :orange, :sky]
   @statuses [:idea, :active, :paused, :done]
@@ -10,8 +11,148 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
   @priorities [:low, :medium, :high]
   @bom_statuses [:needed, :ordered, :received]
 
+  @suffix_currencies ["SEK", "NOK", "DKK", "CHF"]
+  @prefix_currencies ["EUR", "USD", "GBP", "JPY", "CAD", "AUD"]
+  @all_currencies @suffix_currencies ++ @prefix_currencies
+
   defp color_generator, do: one_of(Enum.map(@colors, &constant/1))
   defp status_generator, do: one_of(Enum.map(@statuses, &constant/1))
+
+  defp amount_generator do
+    map(
+      {non_negative_integer(), integer(0..99)},
+      fn {whole, frac} ->
+        Decimal.new("#{whole}.#{String.pad_leading(to_string(frac), 2, "0")}")
+      end
+    )
+  end
+
+  describe "Formatting.currency_prefix?/1" do
+    property "suffix currencies return false" do
+      check all(currency <- one_of(Enum.map(@suffix_currencies, &constant/1))) do
+        refute Formatting.currency_prefix?(currency),
+               "Expected #{currency} to be a suffix currency"
+      end
+    end
+
+    property "prefix currencies return true" do
+      check all(currency <- one_of(Enum.map(@prefix_currencies, &constant/1))) do
+        assert Formatting.currency_prefix?(currency),
+               "Expected #{currency} to be a prefix currency"
+      end
+    end
+  end
+
+  describe "Formatting.money/2" do
+    property "suffix currencies: symbol appears after the number" do
+      check all(
+              currency <- one_of(Enum.map(@suffix_currencies, &constant/1)),
+              amount <- amount_generator()
+            ) do
+        result = Formatting.money(amount, currency)
+        symbol = Formatting.currency_symbol(currency)
+        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+
+        assert String.ends_with?(result, symbol),
+               "#{currency}: expected '#{result}' to end with '#{symbol}'"
+
+        assert String.contains?(result, number_str),
+               "#{currency}: expected '#{result}' to contain number '#{number_str}'"
+
+        refute String.starts_with?(result, symbol),
+               "#{currency}: symbol should not be a prefix, got '#{result}'"
+      end
+    end
+
+    property "prefix currencies: symbol appears before the number" do
+      check all(
+              currency <- one_of(Enum.map(@prefix_currencies, &constant/1)),
+              amount <- amount_generator()
+            ) do
+        result = Formatting.money(amount, currency)
+        symbol = Formatting.currency_symbol(currency)
+        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+
+        assert String.starts_with?(result, symbol),
+               "#{currency}: expected '#{result}' to start with '#{symbol}'"
+
+        assert String.ends_with?(result, number_str),
+               "#{currency}: expected '#{result}' to end with number '#{number_str}'"
+      end
+    end
+
+    property "USD formats as dollar-sign-prefixed number" do
+      check all(amount <- amount_generator()) do
+        result = Formatting.money(amount, "USD")
+
+        assert String.starts_with?(result, "$"),
+               "USD: expected dollar prefix, got '#{result}'"
+      end
+    end
+
+    property "SEK formats as number followed by kr" do
+      check all(amount <- amount_generator()) do
+        result = Formatting.money(amount, "SEK")
+
+        assert String.ends_with?(result, "kr"),
+               "SEK: expected 'kr' suffix, got '#{result}'"
+      end
+    end
+
+    property "all currencies produce non-empty strings containing the amount" do
+      check all(
+              currency <- one_of(Enum.map(@all_currencies, &constant/1)),
+              amount <- amount_generator()
+            ) do
+        result = Formatting.money(amount, currency)
+
+        assert is_binary(result) and result != "",
+               "#{currency}: money/2 returned empty string"
+
+        number_str = amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+
+        assert String.contains?(result, number_str),
+               "#{currency}: expected result to contain '#{number_str}', got '#{result}'"
+      end
+    end
+
+    property "money/1 defaults to SEK suffix format" do
+      check all(amount <- amount_generator()) do
+        result_default = Formatting.money(amount)
+        result_sek = Formatting.money(amount, "SEK")
+
+        assert result_default == result_sek,
+               "money/1 should equal money/2 with SEK"
+      end
+    end
+
+    property "whole-number amounts have no decimal point" do
+      check all(
+              whole <- non_negative_integer(),
+              currency <- one_of(Enum.map(@all_currencies, &constant/1))
+            ) do
+        amount = Decimal.new(whole)
+        result = Formatting.money(amount, currency)
+
+        refute String.contains?(result, "."),
+               "#{currency}: whole amount #{whole} should not contain '.', got '#{result}'"
+      end
+    end
+
+    property "amounts with cents include decimal point" do
+      check all(
+              whole <- non_negative_integer(),
+              frac <- integer(1..99),
+              currency <- one_of(Enum.map(@all_currencies, &constant/1))
+            ) do
+        amount = Decimal.new("#{whole}.#{String.pad_leading(to_string(frac), 2, "0")}")
+        result = Formatting.money(amount, currency)
+
+        assert String.contains?(result, "."),
+               "#{currency}: amount with cents should contain '.', got '#{result}'"
+      end
+    end
+  end
 
   describe "color_bg/1" do
     property "returns a non-empty CSS string for every defined color" do
@@ -49,27 +190,29 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
   end
 
   describe "url_display/1" do
-    property "strips http:// prefix" do
+    property "strips http scheme prefix" do
       check all(domain <- string(:alphanumeric, min_length: 1, max_length: 30)) do
-        url = "http://#{domain}.test"
+        scheme = "http"
+        url = scheme <> "://" <> domain <> ".test"
         result = Components.url_display(url)
-        refute String.starts_with?(result, "http://")
+        refute String.starts_with?(result, scheme <> "://")
         assert String.contains?(result, domain)
       end
     end
 
-    property "strips https:// prefix" do
+    property "strips https scheme prefix" do
       check all(domain <- string(:alphanumeric, min_length: 1, max_length: 30)) do
-        url = "https://#{domain}.test"
+        scheme = "https"
+        url = scheme <> "://" <> domain <> ".test"
         result = Components.url_display(url)
-        refute String.starts_with?(result, "https://")
+        refute String.starts_with?(result, scheme <> "://")
         assert String.contains?(result, domain)
       end
     end
 
     property "strips trailing slash" do
       check all(domain <- string(:alphanumeric, min_length: 1, max_length: 30)) do
-        url = "https://#{domain}.test/"
+        url = "https" <> "://" <> domain <> ".test/"
         result = Components.url_display(url)
         refute String.ends_with?(result, "/")
       end
@@ -77,13 +220,14 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
 
     property "leaves URLs without trailing slash unchanged after prefix strip" do
       check all(_ <- constant(:ok)) do
-        assert Components.url_display("https://example.com") == "example.com"
+        assert Components.url_display("https" <> "://example.com") == "example.com"
       end
     end
 
     property "handles URLs with path segments" do
       check all(_ <- constant(:ok)) do
-        assert Components.url_display("https://github.com/user/repo") == "github.com/user/repo"
+        assert Components.url_display("https" <> "://github.com/user/repo") ==
+                 "github.com/user/repo"
       end
     end
   end

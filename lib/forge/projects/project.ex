@@ -7,6 +7,7 @@ defmodule Forge.Projects.Project do
 
   @statuses [:idea, :active, :paused, :done]
   @colors [:blue, :violet, :emerald, :amber, :rose, :orange, :sky]
+  @currencies ["SEK", "EUR", "USD", "GBP", "NOK", "DKK", "CHF", "JPY", "CAD", "AUD"]
 
   postgres do
     table "projects"
@@ -46,6 +47,7 @@ defmodule Forge.Projects.Project do
         :notes,
         :color,
         :budget,
+        :currency,
         :project_group_id,
         :sort_order
       ]
@@ -61,6 +63,7 @@ defmodule Forge.Projects.Project do
         :notes,
         :color,
         :budget,
+        :currency,
         :project_group_id,
         :sort_order,
         :tasks_enabled
@@ -129,6 +132,12 @@ defmodule Forge.Projects.Project do
       public? true
       allow_nil? false
       default false
+    end
+
+    attribute :currency, :string do
+      public? true
+      allow_nil? false
+      default "SEK"
     end
 
     timestamps type: :utc_datetime
@@ -207,6 +216,7 @@ defmodule Forge.Projects.Project do
           notes: String.t() | nil,
           color: color(),
           budget: Decimal.t() | nil,
+          currency: String.t(),
           sort_order: non_neg_integer(),
           project_group_id: pos_integer() | nil,
           current_task: pinned_task(),
@@ -220,4 +230,7 @@ defmodule Forge.Projects.Project do
 
   @spec colors() :: [color(), ...]
   def colors, do: @colors
+
+  @spec currencies() :: [String.t(), ...]
+  def currencies, do: @currencies
 end
