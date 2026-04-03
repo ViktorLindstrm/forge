@@ -263,7 +263,7 @@ defmodule ForgeWeb.ProjectLive.Form do
   end
 
   @impl true
-  def handle_event("validate", %{"form" => params} = payload, socket) do
+  def handle_event("validate", %{"form" => params}, socket) do
     params =
       case Map.get(params, "tasks_enabled") do
         "" ->
@@ -290,6 +290,10 @@ defmodule ForgeWeb.ProjectLive.Form do
 
   def handle_event("toggle_new_group", _params, socket) do
     {:noreply, assign(socket, :show_new_group, !socket.assigns.show_new_group)}
+  end
+
+  def handle_event("create_group", %{"new_group_name" => name}, socket) do
+    do_create_group(socket, name)
   end
 
   def handle_event("toggle_tasks_enabled", %{"enabled" => enabled}, socket) do

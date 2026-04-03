@@ -755,6 +755,8 @@ defmodule ForgeWeb.ProjectLive.Components do
   attr :note_total_pages, :integer, required: true
   attr :streams, :map, required: true
   attr :notes_empty?, :boolean, required: true
+  attr :editing_note_id, :any, required: true
+  attr :note_edit_form, :any, required: true
 
   def notes_component(assigns) do
     ~H"""
@@ -804,30 +806,67 @@ defmodule ForgeWeb.ProjectLive.Components do
             id={id}
             class="group rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 px-3 py-2"
           >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p
-                  :if={entry.title}
-                  class="text-sm font-medium text-gray-900 dark:text-white truncate"
-                >
-                  {entry.title}
-                </p>
-                <p class="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed">
-                  {entry.body}
-                </p>
-              </div>
-              <button
-                type="button"
-                phx-click="note_delete"
-                phx-value-id={entry.id}
-                data-confirm="Delete this note?"
-                class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
-                aria-label="Delete note"
-                id={"note-delete-#{entry.id}"}
+            <%= if @editing_note_id == entry.id do %>
+              <.form
+                for={@note_edit_form}
+                id={"note-edit-form-#{entry.id}"}
+                phx-submit="note_edit_save"
               >
-                <.icon name="hero-trash" class="size-4" />
-              </button>
-            </div>
+                <textarea
+                  name={@note_edit_form[:body].name}
+                  id={@note_edit_form[:body].id}
+                  rows="4"
+                  class="w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 text-gray-900 dark:text-white resize-none leading-relaxed"
+                >{Phoenix.HTML.Form.normalize_value("textarea", @note_edit_form[:body].value)}</textarea>
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <button
+                    type="button"
+                    phx-click="note_edit_cancel"
+                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    id={"note-edit-cancel-#{entry.id}"}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    phx-disable-with="Saving…"
+                    class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors"
+                    id={"note-edit-save-#{entry.id}"}
+                  >
+                    Save
+                  </button>
+                </div>
+              </.form>
+            <% else %>
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 prose prose-sm dark:prose-invert max-w-none">
+                  {ForgeWeb.Markdown.render(entry.body)}
+                </div>
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    phx-click="note_edit_open"
+                    phx-value-id={entry.id}
+                    class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
+                    aria-label="Edit note"
+                    id={"note-edit-#{entry.id}"}
+                  >
+                    <.icon name="hero-pencil" class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="note_delete"
+                    phx-value-id={entry.id}
+                    data-confirm="Delete this note?"
+                    class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    aria-label="Delete note"
+                    id={"note-delete-#{entry.id}"}
+                  >
+                    <.icon name="hero-trash" class="size-4" />
+                  </button>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
 
@@ -856,54 +895,54 @@ defmodule ForgeWeb.ProjectLive.Components do
           </div>
 
           <button
+            :if={!@note_form_open?}
             type="button"
             phx-click="toggle_note_form"
             class="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             id="note-add-trigger"
           >
-            <.icon name={if @note_form_open?, do: "hero-x-mark", else: "hero-plus"} class="size-4" />
-            {if @note_form_open?, do: "Cancel", else: "Add note"}
+            <.icon name="hero-plus" class="size-4" /> Add note
           </button>
         </div>
 
         <div
           id="note-form-wrapper"
           class={[
-            "mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden",
+            "mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-950/40 overflow-hidden",
             if(@note_form_open?, do: "", else: "hidden")
           ]}
         >
           <.form for={@note_form} id="note-quick-form" phx-submit="note_create">
-            <div class="divide-y divide-gray-100 dark:divide-gray-800">
-              <.field
-                field={@note_form[:title]}
-                type="text"
-                label="Title"
-                placeholder="Optional title…"
-                wrapper_class="!mb-0 flex items-center gap-3 px-3 py-2"
-                label_class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400 !mb-0"
-                class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-              <div class="flex items-start gap-3 px-3 py-2">
-                <label class="w-16 shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Body
-                </label>
-                <textarea
-                  name={@note_form[:body].name}
-                  id={@note_form[:body].id}
-                  rows="1"
-                  placeholder="Write your note…"
-                  class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
-                >{Phoenix.HTML.Form.normalize_value("textarea", @note_form[:body].value)}</textarea>
-                <button
-                  type="submit"
-                  phx-disable-with="Adding…"
-                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
-                  id="note-quick-add"
-                >
-                  Add
-                </button>
-              </div>
+            <div class="px-3 pt-3 pb-2">
+              <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">
+                Markdown supported — <span class="font-mono">**bold**</span>, <span class="font-mono">`code`</span>,
+                <span class="font-mono">_italic_</span>
+              </p>
+              <textarea
+                name={@note_form[:body].name}
+                id={@note_form[:body].id}
+                rows="4"
+                placeholder="What's on your mind?"
+                class="w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white resize-none leading-relaxed"
+              >{Phoenix.HTML.Form.normalize_value("textarea", @note_form[:body].value)}</textarea>
+            </div>
+            <div class="flex items-center justify-end gap-3 px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                phx-click="toggle_note_form"
+                class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                id="note-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                phx-disable-with="Adding…"
+                class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50"
+                id="note-quick-add"
+              >
+                Add note
+              </button>
             </div>
           </.form>
         </div>

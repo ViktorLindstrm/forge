@@ -391,4 +391,12 @@ defmodule Forge.Projects do
       err -> err
     end
   end
+
+  @spec update_journal_entry(JournalEntry.t(), map()) ::
+          {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
+  def update_journal_entry(%JournalEntry{} = entry, attrs) do
+    entry
+    |> Ash.Changeset.for_update(:update, attrs)
+    |> Ash.update()
+  end
 end

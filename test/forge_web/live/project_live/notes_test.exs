@@ -12,5 +12,11 @@ defmodule ForgeWeb.ProjectLive.NotesTest do
       assert form.source.action == :create
       assert form.name == "note"
     end
+
+    test "form does not include a title field" do
+      form = Notes.note_form()
+      fields = Enum.map(form.source.params || %{}, fn {k, _} -> k end)
+      refute :title in fields
+    end
   end
 end
