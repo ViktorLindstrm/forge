@@ -437,12 +437,12 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
       end
     end
 
-    property "clicking cancel/trigger again closes the form" do
+    property "clicking cancel closes the form" do
       check all(_n <- integer(1..3)) do
         project = create_project!()
         {:ok, lv, _} = mount_show(project)
         open_note_form(lv)
-        html = lv |> element("#note-add-trigger") |> render_click()
+        html = lv |> element("#note-cancel") |> render_click()
         assert section_hidden?(html, "note-form-wrapper")
       end
     end
@@ -454,26 +454,10 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         open_note_form(lv)
 
         lv
-        |> form("#note-quick-form", note: %{body: body, title: ""})
+        |> form("#note-quick-form", note: %{body: body})
         |> render_submit()
 
         assert render(lv) =~ body
-      end
-    end
-
-    property "note_create with title shows title on the page" do
-      check all(body <- notes_generator(), title <- name_generator()) do
-        project = create_project!()
-        {:ok, lv, _} = mount_show(project)
-        open_note_form(lv)
-
-        lv
-        |> form("#note-quick-form", note: %{body: body, title: title})
-        |> render_submit()
-
-        html = render(lv)
-        assert html =~ title
-        assert html =~ body
       end
     end
 
@@ -484,7 +468,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         open_note_form(lv)
 
         lv
-        |> form("#note-quick-form", note: %{body: body, title: ""})
+        |> form("#note-quick-form", note: %{body: body})
         |> render_submit()
 
         html = render(lv)
@@ -516,7 +500,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         open_note_form(lv)
 
         lv
-        |> form("#note-quick-form", note: %{body: body, title: ""})
+        |> form("#note-quick-form", note: %{body: body})
         |> render_submit()
 
         html = render(lv)
@@ -531,7 +515,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         open_note_form(lv)
 
         lv
-        |> form("#note-quick-form", note: %{body: body, title: ""})
+        |> form("#note-quick-form", note: %{body: body})
         |> render_submit()
 
         html = render(lv)
@@ -598,7 +582,7 @@ defmodule ForgeWeb.ProjectLive.ShowTest do
         project = create_project!()
         {:ok, lv, _} = mount_show(project)
         lv |> element("#budget-edit-trigger") |> render_click()
-        html = lv |> element("button", "Cancel") |> render_click()
+        html = lv |> element("#budget-cancel") |> render_click()
         refute html =~ "budget-form"
         assert is_nil(Projects.get_project!(project.id).budget)
       end

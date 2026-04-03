@@ -36,12 +36,12 @@ defmodule Forge.Projects.JournalEntry do
     end
 
     create :create do
-      accept [:title, :body, :sort_order, :project_id]
+      accept [:body, :sort_order, :project_id]
       change {Forge.Projects.Changes.SetNextSortOrder, filter_attribute: :project_id}
     end
 
     update :update do
-      accept [:title, :body, :sort_order]
+      accept [:body]
     end
   end
 

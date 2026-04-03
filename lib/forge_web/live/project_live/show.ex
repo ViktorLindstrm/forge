@@ -160,6 +160,7 @@ defmodule ForgeWeb.ProjectLive.Show do
                 <button
                   type="button"
                   phx-click="budget_cancel"
+                  id="budget-cancel"
                   class="text-xs font-medium text-gray-500 hover:text-gray-900 shrink-0"
                 >
                   Cancel
@@ -231,6 +232,8 @@ defmodule ForgeWeb.ProjectLive.Show do
               notes_empty?={@notes_empty?}
               note_page={@note_page}
               note_total_pages={@note_total_pages}
+              editing_note_id={@editing_note_id}
+              note_edit_form={@note_edit_form}
             />
 
             <Components.bom_component
@@ -251,6 +254,8 @@ defmodule ForgeWeb.ProjectLive.Show do
               notes_empty?={@notes_empty?}
               note_page={@note_page}
               note_total_pages={@note_total_pages}
+              editing_note_id={@editing_note_id}
+              note_edit_form={@note_edit_form}
             />
           </div>
         </div>
@@ -303,6 +308,8 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> assign(:pinned_upcoming_task, pinned_upcoming_task)
       |> assign(:note_form, ForgeWeb.ProjectLive.Notes.note_form())
       |> assign(:note_form_open?, false)
+      |> assign(:editing_note_id, nil)
+      |> assign(:note_edit_form, nil)
       |> assign(:task_form_open?, false)
       |> assign(:bom_form_open?, false)
       |> assign(:expanded_task_id, nil)
@@ -408,7 +415,7 @@ defmodule ForgeWeb.ProjectLive.Show do
   end
 
   def handle_info(
-        %Notification{resource: Forge.Projects.Project, action: action, data: project},
+        %Notification{resource: Forge.Projects.Project, action: _action, data: project},
         socket
       ) do
     # Project updated notification (e.g. tasks_enabled changed)
@@ -825,6 +832,63 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> stream(:journal_entries, entries, reset: true)
 
     {:noreply, socket}
+  end
+
+  def handle_event("note_edit_open", %{"id" => id}, socket) do
+    project_id = socket.assigns.project.id
+    entry = Projects.get_journal_entry!(id)
+    form = ForgeWeb.ProjectLive.Notes.note_edit_form(entry)
+
+    entries =
+      Projects.list_journal_entries_page(project_id, socket.assigns.note_page, @notes_per_page)
+
+    {:noreply,
+     socket
+     |> assign(:editing_note_id, entry.id)
+     |> assign(:note_edit_form, form)
+     |> stream(:journal_entries, entries, reset: true)}
+  end
+
+  def handle_event("note_edit_cancel", _params, socket) do
+    project_id = socket.assigns.project.id
+
+    entries =
+      Projects.list_journal_entries_page(project_id, socket.assigns.note_page, @notes_per_page)
+
+    {:noreply,
+     socket
+     |> assign(:editing_note_id, nil)
+     |> assign(:note_edit_form, nil)
+     |> stream(:journal_entries, entries, reset: true)}
+  end
+
+  def handle_event("note_edit_save", %{"note_edit" => params}, socket) do
+    project_id = socket.assigns.project.id
+
+    case AshPhoenix.Form.submit(socket.assigns.note_edit_form.source, params: params) do
+      {:ok, _entry} ->
+        note_count = Projects.count_journal_entries(project_id)
+        total_pages = Kernel.max(1, ceil(note_count / @notes_per_page))
+
+        entries =
+          Projects.list_journal_entries_page(
+            project_id,
+            socket.assigns.note_page,
+            @notes_per_page
+          )
+
+        {:noreply,
+         socket
+         |> assign(:editing_note_id, nil)
+         |> assign(:note_edit_form, nil)
+         |> assign(:note_count, note_count)
+         |> assign(:note_total_pages, total_pages)
+         |> assign(:notes_empty?, entries == [])
+         |> stream(:journal_entries, entries, reset: true)}
+
+      {:error, form} ->
+        {:noreply, assign(socket, :note_edit_form, to_form(form))}
+    end
   end
 
   def handle_event("note_page", %{"page" => page_str}, socket) do
