@@ -7,31 +7,27 @@ defmodule ForgeWeb.ProjectLive.Components.Badges do
 
   @spec status_badge(map()) :: Phoenix.LiveView.Rendered.t()
   def status_badge(assigns) do
+    assigns = assign(assigns, :badge_color, status_color(assigns.status))
+
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium shrink-0",
-      status_classes(@status)
-    ]}>
+    <.badge
+      color={@badge_color}
+      variant="soft"
+      role="status"
+      class="shrink-0 inline-flex items-center gap-1"
+    >
       <span class={["size-1.5 rounded-full", status_dot(@status)]} />
       {String.capitalize(to_string(@status))}
-    </span>
+    </.badge>
     """
   end
 
-  @spec status_classes(Forge.Projects.Project.status()) :: String.t()
-  defp status_classes(:active),
-    do: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-
-  defp status_classes(:idea),
-    do: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
-
-  defp status_classes(:paused),
-    do: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-
-  defp status_classes(:done),
-    do: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-
-  defp status_classes(_), do: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+  @spec status_color(Forge.Projects.Project.status()) :: String.t()
+  defp status_color(:active), do: "success"
+  defp status_color(:idea), do: "primary"
+  defp status_color(:paused), do: "warning"
+  defp status_color(:done), do: "info"
+  defp status_color(_), do: "gray"
 
   @spec status_dot(Forge.Projects.Project.status()) :: String.t()
   defp status_dot(:active), do: "bg-emerald-500"

@@ -33,18 +33,19 @@ defmodule ForgeWeb.ProjectLive.Components.Formatting do
     rounded = Decimal.round(amount, 2)
 
     formatted =
-      if Decimal.equal?(rounded, Decimal.round(rounded, 0)) do
-        rounded |> Decimal.round(0) |> Decimal.to_string(:normal)
-      else
-        Decimal.to_string(rounded, :normal)
+      cond do
+        Decimal.equal?(rounded, Decimal.round(rounded, 0)) ->
+          rounded |> Decimal.round(0) |> Decimal.to_string(:normal)
+
+        true ->
+          Decimal.to_string(rounded, :normal)
       end
 
     symbol = Map.get(@currency_symbols, currency, currency)
 
-    if currency in @prefix_currencies do
-      "#{symbol}#{formatted}"
-    else
-      "#{formatted} #{symbol}"
+    case currency in @prefix_currencies do
+      true -> "#{symbol}#{formatted}"
+      false -> "#{formatted} #{symbol}"
     end
   end
 

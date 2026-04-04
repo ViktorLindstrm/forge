@@ -55,12 +55,7 @@ defmodule Forge.Projects do
 
   @spec delete_project_group(ProjectGroup.t()) ::
           {:ok, ProjectGroup.t()} | {:error, Ash.Error.t()}
-  def delete_project_group(%ProjectGroup{} = group) do
-    case Ash.destroy(group, return_destroyed?: true) do
-      {:ok, destroyed} -> {:ok, destroyed}
-      err -> err
-    end
-  end
+  def delete_project_group(%ProjectGroup{} = group), do: ash_destroy(group)
 
   # ── Projects ──────────────────────────────────────────────────────────────
 
@@ -89,13 +84,17 @@ defmodule Forge.Projects do
     grouped = Enum.map(groups, fn group -> {group, Map.get(by_group, group, [])} end)
     ungrouped = Map.get(by_group, nil, [])
 
-    if ungrouped == [] do
-      grouped
-    else
-      grouped ++ [{nil, ungrouped}]
+    case ungrouped do
+      [] -> grouped
+      _ -> grouped ++ [{nil, ungrouped}]
     end
   end
 
+  # Intentional Ash bypass: mirrors the rationale in `bulk_apply_sort_orders/1`.
+  # Updating N projects one-by-one via Ash would fire N UPDATE statements plus
+  # N PubSub notifications. The raw SQL CASE expression achieves the reorder
+  # atomically in one round-trip. Any change to the projects table schema must
+  # be reflected here manually.
   @spec reorder_projects([pos_integer() | String.t()]) :: :ok
   def reorder_projects(ordered_ids) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
@@ -104,7 +103,11 @@ defmodule Forge.Projects do
       ordered_ids
       |> Enum.with_index(1)
       |> Enum.each(fn {id, sort_order} ->
-        parsed_id = if is_binary(id), do: String.to_integer(id), else: id
+        parsed_id =
+          case id do
+            id when is_binary(id) -> String.to_integer(id)
+            id -> id
+          end
 
         Ecto.Adapters.SQL.query!(
           Forge.Repo,
@@ -146,12 +149,7 @@ defmodule Forge.Projects do
   end
 
   @spec delete_project(Project.t()) :: {:ok, Project.t()} | {:error, Ash.Error.t()}
-  def delete_project(%Project{} = project) do
-    case Ash.destroy(project, return_destroyed?: true) do
-      {:ok, destroyed} -> {:ok, destroyed}
-      err -> err
-    end
-  end
+  def delete_project(%Project{} = project), do: ash_destroy(project)
 
   @spec count_by_status() :: status_counts()
   def count_by_status do
@@ -192,6 +190,14 @@ defmodule Forge.Projects do
   @spec get_task!(task_id()) :: Task.t()
   def get_task!(id), do: Ash.get!(Task, id)
 
+  @spec get_task_with_subtasks!(task_id()) :: Task.t()
+  def get_task_with_subtasks!(id) do
+    Task
+    |> Ash.Query.filter(id == ^id)
+    |> Ash.Query.load(:subtasks)
+    |> Ash.read_one!()
+  end
+
   @spec create_task(map()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def create_task(attrs) do
     Task
@@ -207,12 +213,7 @@ defmodule Forge.Projects do
   end
 
   @spec delete_task(Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
-  def delete_task(%Task{} = task) do
-    case Ash.destroy(task, return_destroyed?: true) do
-      {:ok, destroyed} -> {:ok, destroyed}
-      err -> err
-    end
-  end
+  def delete_task(%Task{} = task), do: ash_destroy(task)
 
   @spec toggle_task_done(task_id() | Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
   def toggle_task_done(id) when is_binary(id) do
@@ -341,34 +342,17 @@ defmodule Forge.Projects do
   end
 
   @spec delete_bom_item(BomItem.t()) :: {:ok, BomItem.t()} | {:error, Ash.Error.t()}
-  def delete_bom_item(%BomItem{} = item) do
-    case Ash.destroy(item, return_destroyed?: true) do
-      {:ok, destroyed} -> {:ok, destroyed}
-      err -> err
-    end
-  end
+  def delete_bom_item(%BomItem{} = item), do: ash_destroy(item)
 
-  @spec bom_budget(project_id()) :: bom_budget()
-  def bom_budget(project_id) do
+  @spec bom_budget(Project.t()) :: bom_budget()
+  def bom_budget(%Project{} = project) do
     items =
       BomItem
-      |> Ash.Query.for_read(:by_project, %{project_id: project_id})
+      |> Ash.Query.for_read(:by_project, %{project_id: project.id})
       |> Ash.Query.load([:total_price])
       |> Ash.read!()
 
-    total =
-      Enum.reduce(items, Decimal.new(0), fn item, acc ->
-        Decimal.add(acc, item.total_price || Decimal.new(0))
-      end)
-
-    spent =
-      items
-      |> Enum.filter(&(&1.status in [:ordered, :received]))
-      |> Enum.reduce(Decimal.new(0), fn item, acc ->
-        Decimal.add(acc, item.total_price || Decimal.new(0))
-      end)
-
-    %{total: total, spent: spent, items: items}
+    %{total: project.bom_total, spent: project.bom_spent, items: items}
   end
 
   # ── Journal Entries ───────────────────────────────────────────────────────
@@ -416,12 +400,7 @@ defmodule Forge.Projects do
 
   @spec delete_journal_entry(JournalEntry.t()) ::
           {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
-  def delete_journal_entry(%JournalEntry{} = entry) do
-    case Ash.destroy(entry, return_destroyed?: true) do
-      {:ok, destroyed} -> {:ok, destroyed}
-      err -> err
-    end
-  end
+  def delete_journal_entry(%JournalEntry{} = entry), do: ash_destroy(entry)
 
   @spec update_journal_entry(JournalEntry.t(), map()) ::
           {:ok, JournalEntry.t()} | {:error, Ash.Error.t()}
@@ -429,5 +408,16 @@ defmodule Forge.Projects do
     entry
     |> Ash.Changeset.for_update(:update, attrs)
     |> Ash.update()
+  end
+
+  # ── Private helpers ───────────────────────────────────────────────────────
+
+  @spec ash_destroy(Ash.Resource.record()) ::
+          {:ok, Ash.Resource.record()} | {:error, Ash.Error.t()}
+  defp ash_destroy(record) do
+    case Ash.destroy(record, return_destroyed?: true) do
+      {:ok, destroyed} -> {:ok, destroyed}
+      err -> err
+    end
   end
 end

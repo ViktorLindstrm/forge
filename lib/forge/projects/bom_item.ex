@@ -72,16 +72,7 @@ defmodule Forge.Projects.BomItem do
       description "Cycles the status: needed → ordered → received → needed"
       require_atomic? false
 
-      change fn changeset, _context ->
-        new_status =
-          case changeset.data.status do
-            :needed -> :ordered
-            :ordered -> :received
-            _ -> :needed
-          end
-
-        Ash.Changeset.force_change_attribute(changeset, :status, new_status)
-      end
+      change Forge.Projects.Changes.CycleBomStatus
     end
   end
 

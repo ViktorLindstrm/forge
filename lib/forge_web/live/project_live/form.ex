@@ -295,11 +295,9 @@ defmodule ForgeWeb.ProjectLive.Form do
     params =
       case Map.get(params, "tasks_enabled") do
         "" ->
-          # Prevent intermediate empty values from overwriting the persisted setting when toggling
-          if socket.assigns[:project] do
-            Map.put(params, "tasks_enabled", to_string(socket.assigns.project.tasks_enabled))
-          else
-            params
+          case socket.assigns[:project] do
+            nil -> params
+            project -> Map.put(params, "tasks_enabled", to_string(project.tasks_enabled))
           end
 
         _ ->
@@ -326,7 +324,7 @@ defmodule ForgeWeb.ProjectLive.Form do
 
   def handle_event("toggle_tasks_enabled", %{"enabled" => enabled}, socket) do
     project = socket.assigns.project
-    new_val = enabled in ["true", true, true]
+    new_val = enabled == "true"
 
     case Projects.update_project(project, %{"tasks_enabled" => new_val}) do
       {:ok, updated} ->
@@ -339,21 +337,21 @@ defmodule ForgeWeb.ProjectLive.Form do
   end
 
   def handle_event("set_currency", %{"currency" => currency}, socket) do
-    project = socket.assigns.project
+    case socket.assigns.project do
+      nil ->
+        {:noreply, socket}
 
-    if project do
-      case Projects.update_project(project, %{"currency" => currency}) do
-        {:ok, updated} ->
-          form =
-            AshPhoenix.Form.for_update(updated, :update, domain: Forge.Projects) |> to_form()
+      project ->
+        case Projects.update_project(project, %{"currency" => currency}) do
+          {:ok, updated} ->
+            form =
+              AshPhoenix.Form.for_update(updated, :update, domain: Forge.Projects) |> to_form()
 
-          {:noreply, assign(socket, project: updated, form: form)}
+            {:noreply, assign(socket, project: updated, form: form)}
 
-        {:error, _} ->
-          {:noreply, put_flash(socket, :error, "Could not update currency")}
-      end
-    else
-      {:noreply, socket}
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not update currency")}
+        end
     end
   end
 

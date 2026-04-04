@@ -38,23 +38,26 @@ defmodule ForgeWeb.ProjectLive.Components do
           <div class="flex items-center gap-2">
             <.status_badge status={@project.status} />
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <.link
-                navigate={~p"/projects/#{@project}/edit?return_to=show"}
-                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              <.icon_button
+                link_type="live_redirect"
+                to={~p"/projects/#{@project}/edit?return_to=show"}
+                color="gray"
+                size="xs"
+                tooltip="Edit project"
                 id="project-card-edit"
-                title="Edit project"
               >
                 <.icon name="hero-pencil" class="size-4" />
-              </.link>
-              <button
-                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+              </.icon_button>
+              <.icon_button
+                color="danger"
+                size="xs"
+                tooltip="Delete project"
                 phx-click="delete"
                 data-confirm="Delete this project?"
                 id="project-delete"
-                title="Delete project"
               >
                 <.icon name="hero-trash" class="size-4" />
-              </button>
+              </.icon_button>
             </div>
           </div>
         </div>
@@ -73,15 +76,16 @@ defmodule ForgeWeb.ProjectLive.Components do
                 {@project.current_task.title}
               </p>
             </div>
-            <button
-              type="button"
+            <.button
+              size="xs"
+              color="success"
+              variant="light"
               phx-click="task_unpin"
               phx-value-id={@project.current_task.id}
-              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
               id="project-current-unpin"
             >
               Unpin
-            </button>
+            </.button>
           </div>
 
           <div
@@ -97,15 +101,16 @@ defmodule ForgeWeb.ProjectLive.Components do
                 {@project.upcoming_task.title}
               </p>
             </div>
-            <button
-              type="button"
+            <.button
+              size="xs"
+              color="info"
+              variant="light"
               phx-click="task_unpin"
               phx-value-id={@project.upcoming_task.id}
-              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-sky-700 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors"
               id="project-upcoming-unpin"
             >
               Unpin
-            </button>
+            </.button>
           </div>
         </div>
 
@@ -151,21 +156,25 @@ defmodule ForgeWeb.ProjectLive.Components do
               class="flex items-center gap-2 flex-1"
             >
               <.input field={@budget_form[:budget]} type="number" step="0.01" label="" />
-              <button
+              <.button
                 type="submit"
                 id="budget-save"
-                class="text-xs font-semibold text-violet-600 hover:text-violet-500 shrink-0"
+                size="xs"
+                color="primary"
+                variant="ghost"
               >
                 Save
-              </button>
-              <button
+              </.button>
+              <.button
                 type="button"
                 phx-click="budget_cancel"
                 id="budget-cancel"
-                class="text-xs font-medium text-gray-500 hover:text-gray-900 shrink-0"
+                size="xs"
+                color="gray"
+                variant="ghost"
               >
                 Cancel
-              </button>
+              </.button>
             </.form>
           <% else %>
             <span class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -177,15 +186,16 @@ defmodule ForgeWeb.ProjectLive.Components do
             >
               {Formatting.money(@project.bom_spent, @project.currency)} spent
             </span>
-            <button
+            <.icon_button
               type="button"
               phx-click="budget_edit"
               id="budget-edit-trigger"
-              class="p-1 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
-              aria-label="Edit budget"
+              color="gray"
+              size="xs"
+              tooltip="Edit budget"
             >
               <.icon name="hero-pencil-square" class="size-3.5" />
-            </button>
+            </.icon_button>
           <% end %>
         </div>
       </div>
@@ -227,13 +237,13 @@ defmodule ForgeWeb.ProjectLive.Components do
 
   defp summary_card(assigns) do
     ~H"""
-    <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+    <.card class="p-4">
       <div class="flex items-center gap-2 mb-2">
         <.icon name={@icon} class={["size-5", summary_icon_color(@color)]} />
         <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{@label}</p>
       </div>
       <p class="text-xl font-bold text-gray-900 dark:text-white">{@value}</p>
-    </div>
+    </.card>
     """
   end
 
@@ -408,66 +418,71 @@ defmodule ForgeWeb.ProjectLive.Components do
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
+                  <div class="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <.button
                       :if={task.status != :done and is_nil(task.parent_task_id)}
                       type="button"
                       phx-click="task_pin_cycle"
                       phx-value-id={task.id}
-                      class={[
-                        "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
-                        task.pin_status == :current &&
-                          "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-                        task.pin_status == :upcoming &&
-                          "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
-                        task.pin_status not in [:current, :upcoming] &&
-                          "text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800"
-                      ]}
+                      color={
+                        case task.pin_status do
+                          :current -> "success"
+                          :upcoming -> "info"
+                          _ -> "gray"
+                        end
+                      }
+                      variant={
+                        if task.pin_status in [:current, :upcoming], do: "light", else: "ghost"
+                      }
+                      size="xs"
                       aria-label="Cycle pin status"
                       id={"task-pin-cycle-#{task.id}"}
+                      icon="hero-bookmark"
                     >
-                      <.icon name="hero-bookmark" class="size-3.5" />
                       {case task.pin_status do
                         :current -> "Current"
                         :upcoming -> "Upcoming"
                         _ -> nil
                       end}
-                    </button>
+                    </.button>
 
-                    <button
+                    <.icon_button
                       :if={task.status != :done and is_nil(task.parent_task_id)}
                       type="button"
                       phx-click="subtask_form_open"
                       phx-value-id={task.id}
-                      class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
-                      aria-label="Add subtask"
+                      color="gray"
+                      size="xs"
+                      tooltip="Add subtask"
                       id={"subtask-form-open-#{task.id}"}
                     >
                       <.icon name="hero-plus-circle" class="size-4" />
-                    </button>
+                    </.icon_button>
 
-                    <button
+                    <.icon_button
                       :if={task.status != :done and is_nil(task.parent_task_id)}
                       type="button"
                       phx-click="task_edit_open"
                       phx-value-id={task.id}
-                      class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
-                      aria-label="Edit task"
+                      color="gray"
+                      size="xs"
+                      tooltip="Edit task"
                       id={"task-edit-#{task.id}"}
                     >
                       <.icon name="hero-pencil-square" class="size-4" />
-                    </button>
+                    </.icon_button>
 
-                    <button
+                    <.icon_button
                       phx-click="task_delete"
                       phx-value-id={task.id}
                       data-confirm="Delete this task?"
-                      class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                      aria-label="Delete task"
+                      color="danger"
+                      size="xs"
+                      tooltip="Delete task"
                       id={"task-delete-#{task.id}"}
                     >
                       <.icon name="hero-trash" class="size-4" />
-                    </button>
+                    </.icon_button>
                   </div>
                 </div>
 
@@ -527,23 +542,27 @@ defmodule ForgeWeb.ProjectLive.Components do
                           placeholder="Details, context, links…"
                           class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
                         >{Phoenix.HTML.Form.normalize_value("textarea", @task_edit_form[:description].value)}</textarea>
-                        <div class="shrink-0 self-end flex items-center gap-3 border-l border-gray-200 dark:border-gray-700 pl-3">
-                          <button
+                        <div class="shrink-0 self-end flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3">
+                          <.button
                             type="button"
                             phx-click="task_edit_cancel"
-                            class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            color="gray"
+                            variant="ghost"
+                            size="xs"
                             id={"task-edit-cancel-#{task.id}"}
                           >
                             Cancel
-                          </button>
-                          <button
+                          </.button>
+                          <.button
                             type="submit"
                             phx-disable-with="Saving…"
-                            class="text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50"
+                            color="primary"
+                            variant="ghost"
+                            size="xs"
                             id={"task-edit-save-#{task.id}"}
                           >
                             Save
-                          </button>
+                          </.button>
                         </div>
                       </div>
                     </div>
@@ -591,23 +610,27 @@ defmodule ForgeWeb.ProjectLive.Components do
                     phx-debounce="200"
                     class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 text-gray-900 dark:text-white"
                   />
-                  <div class="shrink-0 flex items-center gap-3 border-l border-gray-200 dark:border-gray-700 pl-3">
-                    <button
+                  <div class="shrink-0 flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3">
+                    <.button
                       type="button"
                       phx-click="subtask_form_close"
                       phx-value-id={task.id}
-                      class="text-sm font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                      color="gray"
+                      variant="ghost"
+                      size="xs"
                       id={"subtask-cancel-#{task.id}"}
                     >
                       Cancel
-                    </button>
-                    <button
+                    </.button>
+                    <.button
                       type="submit"
-                      class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors"
+                      color="primary"
+                      variant="ghost"
+                      size="xs"
                       id={"subtask-add-#{task.id}"}
                     >
                       Add
-                    </button>
+                    </.button>
                   </div>
                 </div>
               </.form>
@@ -616,15 +639,17 @@ defmodule ForgeWeb.ProjectLive.Components do
         </div>
 
         <div class="flex justify-end mt-3">
-          <button
+          <.button
             type="button"
             phx-click="toggle_task_form"
-            class="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            color="primary"
+            variant="ghost"
+            size="sm"
             id="task-add-trigger"
+            icon={if @task_form_open?, do: "hero-x-mark", else: "hero-plus"}
           >
-            <.icon name={if @task_form_open?, do: "hero-x-mark", else: "hero-plus"} class="size-4" />
             {if @task_form_open?, do: "Cancel", else: "Add task"}
-          </button>
+          </.button>
         </div>
 
         <div
@@ -674,14 +699,17 @@ defmodule ForgeWeb.ProjectLive.Components do
                   placeholder="Details, context, links…"
                   class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
                 >{Phoenix.HTML.Form.normalize_value("textarea", @task_form[:description].value)}</textarea>
-                <button
+                <.button
                   type="submit"
                   phx-disable-with="Adding…"
-                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
+                  color="primary"
+                  variant="ghost"
+                  size="xs"
                   id="task-quick-add"
+                  class="shrink-0 self-end border-l border-gray-200 dark:border-gray-700 pl-3"
                 >
                   Add
-                </button>
+                </.button>
               </div>
             </div>
           </.form>
@@ -696,6 +724,12 @@ defmodule ForgeWeb.ProjectLive.Components do
   defp summary_icon_color("sky"), do: "text-sky-500"
   defp summary_icon_color("emerald"), do: "text-emerald-500"
   defp summary_icon_color(_), do: "text-gray-400"
+
+  @spec bom_status_badge_color(Forge.Projects.BomItem.status()) :: String.t()
+  defp bom_status_badge_color(:needed), do: "primary"
+  defp bom_status_badge_color(:ordered), do: "warning"
+  defp bom_status_badge_color(:received), do: "success"
+  defp bom_status_badge_color(_), do: "gray"
 
   defp task_progress_label(counts) do
     done = Map.get(counts, :done, 0)
@@ -843,21 +877,25 @@ defmodule ForgeWeb.ProjectLive.Components do
                   />
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
-                  <button
+                  <.button
                     type="button"
                     phx-click="bom_edit_cancel"
                     id={"bom-edit-cancel-#{item.id}"}
-                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                    color="gray"
+                    variant="ghost"
+                    size="xs"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </.button>
+                  <.button
                     type="submit"
                     id={"bom-edit-save-#{item.id}"}
-                    class="text-xs font-semibold text-violet-600 hover:text-violet-500"
+                    color="primary"
+                    variant="ghost"
+                    size="xs"
                   >
                     Save
-                  </button>
+                  </.button>
                 </div>
               </.form>
             <% else %>
@@ -874,57 +912,65 @@ defmodule ForgeWeb.ProjectLive.Components do
                   </p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <button
+                  <.button
                     type="button"
                     phx-click="bom_toggle"
                     phx-value-id={item.id}
-                    class={[
-                      "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
-                      BomHelpers.bom_status_classes(item.status)
-                    ]}
+                    color={bom_status_badge_color(item.status)}
+                    variant="light"
+                    size="xs"
                     id={"bom-toggle-#{item.id}"}
                   >
-                    <span class={["size-1.5 rounded-full", BomHelpers.bom_status_dot(item.status)]} />
+                    <span class={[
+                      "size-1.5 rounded-full mr-1",
+                      BomHelpers.bom_status_dot(item.status)
+                    ]} />
                     {String.capitalize(to_string(item.status))}
-                  </button>
+                  </.button>
 
-                  <button
+                  <.icon_button
                     type="button"
                     phx-click="bom_edit_open"
                     phx-value-id={item.id}
-                    class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors opacity-0 group-hover:opacity-100"
-                    aria-label="Edit item"
+                    color="gray"
+                    size="xs"
+                    tooltip="Edit item"
+                    class="opacity-0 group-hover:opacity-100"
                     id={"bom-edit-#{item.id}"}
                   >
                     <.icon name="hero-pencil" class="size-4" />
-                  </button>
+                  </.icon_button>
 
-                  <button
+                  <.icon_button
                     type="button"
                     phx-click="bom_delete"
                     phx-value-id={item.id}
                     data-confirm="Delete this item?"
-                    class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors opacity-0 group-hover:opacity-100"
-                    aria-label="Delete item"
+                    color="danger"
+                    size="xs"
+                    tooltip="Delete item"
+                    class="opacity-0 group-hover:opacity-100"
                     id={"bom-delete-#{item.id}"}
                   >
                     <.icon name="hero-trash" class="size-4" />
-                  </button>
+                  </.icon_button>
                 </div>
               </div>
             <% end %>
           </div>
         </div>
         <div class="flex justify-end mt-3">
-          <button
+          <.button
             type="button"
             phx-click="toggle_bom_form"
-            class="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            color="primary"
+            variant="ghost"
+            size="sm"
             id="bom-add-trigger"
+            icon={if @bom_form_open?, do: "hero-x-mark", else: "hero-plus"}
           >
-            <.icon name={if @bom_form_open?, do: "hero-x-mark", else: "hero-plus"} class="size-4" />
             {if @bom_form_open?, do: "Cancel", else: "Add item"}
-          </button>
+          </.button>
         </div>
 
         <div
@@ -1011,14 +1057,17 @@ defmodule ForgeWeb.ProjectLive.Components do
                   placeholder="Lead time, substitutes, extra info…"
                   class="flex-1 bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 resize-none text-gray-900 dark:text-white"
                 >{Phoenix.HTML.Form.normalize_value("textarea", @bom_form[:notes].value)}</textarea>
-                <button
+                <.button
                   type="submit"
                   phx-disable-with="Adding…"
-                  class="shrink-0 self-end text-sm font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50 border-l border-gray-200 dark:border-gray-700 pl-3"
+                  color="primary"
+                  variant="ghost"
+                  size="xs"
                   id="bom-quick-add"
+                  class="shrink-0 self-end border-l border-gray-200 dark:border-gray-700 pl-3"
                 >
                   Add
-                </button>
+                </.button>
               </div>
             </div>
           </.form>
@@ -1102,23 +1151,27 @@ defmodule ForgeWeb.ProjectLive.Components do
                   rows="4"
                   class="w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 text-sm p-0 text-gray-900 dark:text-white resize-none leading-relaxed"
                 >{Phoenix.HTML.Form.normalize_value("textarea", @note_edit_form[:body].value)}</textarea>
-                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
-                  <button
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <.button
                     type="button"
                     phx-click="note_edit_cancel"
-                    class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    color="gray"
+                    variant="ghost"
+                    size="xs"
                     id={"note-edit-cancel-#{entry.id}"}
                   >
                     Cancel
-                  </button>
-                  <button
+                  </.button>
+                  <.button
                     type="submit"
                     phx-disable-with="Saving…"
-                    class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors"
+                    color="primary"
+                    variant="ghost"
+                    size="xs"
                     id={"note-edit-save-#{entry.id}"}
                   >
                     Save
-                  </button>
+                  </.button>
                 </div>
               </.form>
             <% else %>
@@ -1127,27 +1180,29 @@ defmodule ForgeWeb.ProjectLive.Components do
                   {ForgeWeb.Markdown.render(entry.body)}
                 </div>
                 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
+                  <.icon_button
                     type="button"
                     phx-click="note_edit_open"
                     phx-value-id={entry.id}
-                    class="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors"
-                    aria-label="Edit note"
+                    color="gray"
+                    size="xs"
+                    tooltip="Edit note"
                     id={"note-edit-#{entry.id}"}
                   >
                     <.icon name="hero-pencil" class="size-4" />
-                  </button>
-                  <button
+                  </.icon_button>
+                  <.icon_button
                     type="button"
                     phx-click="note_delete"
                     phx-value-id={entry.id}
                     data-confirm="Delete this note?"
-                    class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                    aria-label="Delete note"
+                    color="danger"
+                    size="xs"
+                    tooltip="Delete note"
                     id={"note-delete-#{entry.id}"}
                   >
                     <.icon name="hero-trash" class="size-4" />
-                  </button>
+                  </.icon_button>
                 </div>
               </div>
             <% end %>
@@ -1155,38 +1210,27 @@ defmodule ForgeWeb.ProjectLive.Components do
         </div>
 
         <div class="flex justify-between items-center mt-3">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              phx-click="note_page"
-              phx-value-page={@note_page - 1}
-              class="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50"
-              disabled={@note_page <= 1}
-              id="notes-prev"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              phx-click="note_page"
-              phx-value-page={@note_page + 1}
-              class="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50"
-              disabled={@note_page >= @note_total_pages}
-              id="notes-next"
-            >
-              Next
-            </button>
-          </div>
+          <.pagination
+            :if={@note_total_pages > 1}
+            event={true}
+            current_page={@note_page}
+            total_pages={@note_total_pages}
+            class="[&_.pc-pagination\_\_button]:text-xs [&_.pc-pagination\_\_button]:px-2 [&_.pc-pagination\_\_button]:py-1"
+            id="notes-pagination"
+          />
 
-          <button
+          <.button
             :if={!@note_form_open?}
             type="button"
             phx-click="toggle_note_form"
-            class="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            color="primary"
+            variant="ghost"
+            size="sm"
             id="note-add-trigger"
+            icon="hero-plus"
           >
-            <.icon name="hero-plus" class="size-4" /> Add note
-          </button>
+            Add note
+          </.button>
         </div>
 
         <div
@@ -1259,23 +1303,27 @@ defmodule ForgeWeb.ProjectLive.Components do
                 <% end %>
               </div>
             </div>
-            <div class="flex items-center justify-end gap-3 px-3 py-2 border-t border-gray-100 dark:border-gray-800">
-              <button
+            <div class="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+              <.button
                 type="button"
                 phx-click="toggle_note_form"
-                class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                color="gray"
+                variant="ghost"
+                size="xs"
                 id="note-cancel"
               >
                 Cancel
-              </button>
-              <button
+              </.button>
+              <.button
                 type="submit"
                 phx-disable-with="Adding…"
-                class="text-xs font-semibold text-violet-600 hover:text-violet-500 transition-colors disabled:opacity-50"
+                color="primary"
+                variant="ghost"
+                size="xs"
                 id="note-quick-add"
               >
                 Add note
-              </button>
+              </.button>
             </div>
           </.form>
         </div>

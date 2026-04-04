@@ -117,7 +117,13 @@ defmodule ForgeWeb.ProjectLive.TaskHandlers do
   @spec task_details_toggle(map(), socket()) :: {:noreply, socket()}
   def task_details_toggle(%{"id" => id}, socket) do
     expanded = socket.assigns.expanded_task_id
-    new_expanded = if expanded == id, do: nil, else: id
+
+    new_expanded =
+      case expanded do
+        ^id -> nil
+        _ -> id
+      end
+
     tasks = Projects.list_tasks_with_subtasks(socket.assigns.project.id)
 
     {:noreply,
@@ -192,8 +198,10 @@ defmodule ForgeWeb.ProjectLive.TaskHandlers do
 
   @spec subtask_form_close(map(), socket()) :: {:noreply, socket()}
   def subtask_form_close(%{"id" => id}, socket) do
+    current_id = to_string(socket.assigns.subtask_form_task_id)
+
     new_value =
-      case to_string(socket.assigns.subtask_form_task_id) do
+      case current_id do
         ^id -> nil
         _ -> socket.assigns.subtask_form_task_id
       end
@@ -229,10 +237,8 @@ defmodule ForgeWeb.ProjectLive.TaskHandlers do
   def reload_tasks(socket) do
     project_id = socket.assigns.project.id
     tasks = Projects.list_tasks_with_subtasks(project_id)
-    project = Projects.get_project!(project_id)
 
     socket
-    |> assign(:project, project)
     |> assign(:task_counts, Projects.task_stats(project_id))
     |> assign(:tasks_empty?, tasks == [])
     |> stream(:tasks, tasks, reset: true)

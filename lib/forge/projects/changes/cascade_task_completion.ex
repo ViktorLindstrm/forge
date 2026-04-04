@@ -18,10 +18,9 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
     case Ash.Changeset.fetch_change(changeset, :status) do
       {:ok, status} when status in [:done, :todo] ->
         Ash.Changeset.after_action(changeset, fn _changeset, task ->
-          if is_nil(task.parent_task_id) do
-            cascade_to_subtasks(task, status)
-          else
-            update_parent_status(task)
+          case task.parent_task_id do
+            nil -> cascade_to_subtasks(task, status)
+            _ -> update_parent_status(task)
           end
 
           {:ok, task}
@@ -66,16 +65,21 @@ defmodule Forge.Projects.Changes.CascadeTaskCompletion do
       |> Ash.read!()
 
     desired_status =
-      if siblings != [] and Enum.all?(siblings, &(&1.status == :done)),
-        do: :done,
-        else: :todo
+      cond do
+        siblings != [] and Enum.all?(siblings, &(&1.status == :done)) -> :done
+        true -> :todo
+      end
 
-    if parent.status != desired_status do
-      parent
-      |> Ash.Changeset.for_update(:update, %{status: desired_status, pin_status: nil})
-      |> Ash.update!()
+    case parent.status do
+      ^desired_status ->
+        :ok
 
-      update_parent_status(parent)
+      _ ->
+        parent
+        |> Ash.Changeset.for_update(:update, %{status: desired_status, pin_status: nil})
+        |> Ash.update!()
+
+        update_parent_status(parent)
     end
 
     :ok
