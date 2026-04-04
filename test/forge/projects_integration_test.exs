@@ -388,7 +388,7 @@ defmodule Forge.ProjectsIntegrationTest do
             item
           end)
 
-        budget_initial = Projects.bom_budget(project.id)
+        budget_initial = Projects.bom_budget(Projects.get_project!(project.id))
         assert Decimal.compare(budget_initial.spent, Decimal.new(0)) == :eq
 
         expected_total =
@@ -405,7 +405,7 @@ defmodule Forge.ProjectsIntegrationTest do
         {:ok, _} = Projects.update_bom_item(item1, %{"status" => "ordered"})
         {:ok, _} = Projects.update_bom_item(item2, %{"status" => "received"})
 
-        budget_after = Projects.bom_budget(project.id)
+        budget_after = Projects.bom_budget(Projects.get_project!(project.id))
         spent_items = [item1, item2]
 
         expected_spent =
@@ -439,13 +439,13 @@ defmodule Forge.ProjectsIntegrationTest do
             "quantity" => qty
           })
 
-        budget_with = Projects.bom_budget(project.id)
+        budget_with = Projects.bom_budget(Projects.get_project!(project.id))
         expected = Decimal.mult(price, Decimal.new(qty))
         assert Decimal.compare(budget_with.total, expected) in [:eq, :gt]
 
         {:ok, _} = Projects.delete_bom_item(item)
 
-        budget_without = Projects.bom_budget(project.id)
+        budget_without = Projects.bom_budget(Projects.get_project!(project.id))
         assert Decimal.compare(budget_without.total, budget_with.total) in [:lt, :eq]
       end
     end
@@ -621,7 +621,12 @@ defmodule Forge.ProjectsIntegrationTest do
           Projects.create_journal_entry(%{"body" => journal_body, "project_id" => project.id})
 
         assert Enum.any?(Projects.list_tasks(project.id), &(&1.id == task.id))
-        assert Enum.any?(Projects.bom_budget(project.id).items, &(&1.id == bom.id))
+
+        assert Enum.any?(
+                 Projects.bom_budget(Projects.get_project!(project.id)).items,
+                 &(&1.id == bom.id)
+               )
+
         assert Projects.count_journal_entries(project.id) >= 1
 
         {:ok, updated_project} =

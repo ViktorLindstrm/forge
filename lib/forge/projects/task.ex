@@ -38,19 +38,22 @@ defmodule Forge.Projects.Task do
       prepare fn query, _context ->
         require Ash.Expr
 
+        pin_sort =
+          Ash.Expr.calc(
+            if pin_status == :current do
+              0
+            else
+              if pin_status == :upcoming do
+                1
+              else
+                2
+              end
+            end,
+            type: :integer
+          )
+
         Ash.Query.sort(query, [
-          {Ash.Expr.calc(
-             if pin_status == :current do
-               0
-             else
-               if pin_status == :upcoming do
-                 1
-               else
-                 2
-               end
-             end,
-             type: :integer
-           ), :asc},
+          {pin_sort, :asc},
           {:sort_order, :asc},
           {:inserted_at, :asc}
         ])
@@ -98,11 +101,7 @@ defmodule Forge.Projects.Task do
       require_atomic? false
       atomic_upgrade? true
 
-      change fn changeset, _context ->
-        current_status = changeset.data.status
-        new_status = if current_status == :done, do: :todo, else: :done
-        Ash.Changeset.force_change_attribute(changeset, :status, new_status)
-      end
+      change Forge.Projects.Changes.ToggleTaskDone
 
       change set_attribute(:pin_status, nil), where: attribute_equals(:status, :done)
       change Forge.Projects.Changes.CascadeTaskCompletion
@@ -126,9 +125,7 @@ defmodule Forge.Projects.Task do
       require_atomic? false
       atomic_upgrade? true
 
-      change fn changeset, _context ->
-        Ash.Changeset.force_change_attribute(changeset, :pin_status, nil)
-      end
+      change set_attribute(:pin_status, nil)
     end
 
     update :reorder do

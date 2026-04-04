@@ -183,7 +183,10 @@ defmodule ForgeWeb.ProjectLive.IntegrationTest do
         assert html =~ item_name,
                "BOM item '#{item_name}' not visible after creation"
 
-        item = Projects.bom_budget(project.id).items |> Enum.find(&(&1.name == item_name))
+        item =
+          Projects.bom_budget(Projects.get_project!(project.id)).items
+          |> Enum.find(&(&1.name == item_name))
+
         assert item, "BOM item '#{item_name}' not found in DB after creation"
 
         html = lv |> element("#bom-toggle-#{item.id}") |> render_click()
@@ -241,7 +244,10 @@ defmodule ForgeWeb.ProjectLive.IntegrationTest do
         assert html =~ "1 item",
                "Summary should show '1 item' after creation"
 
-        item = Projects.bom_budget(project.id).items |> Enum.find(&(&1.name == item_name))
+        item =
+          Projects.bom_budget(Projects.get_project!(project.id)).items
+          |> Enum.find(&(&1.name == item_name))
+
         lv |> element("#bom-toggle-#{item.id}") |> render_click()
         html = render(lv)
 
@@ -425,7 +431,7 @@ defmodule ForgeWeb.ProjectLive.IntegrationTest do
         remaining = length(entries) - per_page
 
         if remaining > 0 do
-          html = lv |> element("#notes-next") |> render_click()
+          html = lv |> render_click("goto-page", %{"page" => "2"})
 
           last_page_body = bodies |> List.first()
 

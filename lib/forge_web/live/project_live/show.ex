@@ -4,14 +4,13 @@ defmodule ForgeWeb.ProjectLive.Show do
   alias Ash.Notifier.Notification
   alias Forge.Projects
   alias ForgeWeb.ProjectLive.BomHandlers
+  alias ForgeWeb.ProjectLive.Budget
   alias ForgeWeb.ProjectLive.Components
   alias ForgeWeb.ProjectLive.Bom
   alias ForgeWeb.ProjectLive.NoteHandlers
   alias ForgeWeb.ProjectLive.Notes
   alias ForgeWeb.ProjectLive.TaskHandlers
   alias ForgeWeb.ProjectLive.Tasks
-
-  require Ash.Query
 
   @impl true
   def render(assigns) do
@@ -121,7 +120,7 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> assign(:project, project)
       |> assign(:page_title, "Project · Forge")
       |> assign(:sections_open, %{tasks: true, bom: true, notes: true})
-      |> assign(:bom_budget, Projects.bom_budget(project.id))
+      |> assign(:bom_budget, Projects.bom_budget(project))
       |> assign(:bom_form, Bom.bom_form())
       |> assign(:bom_form_open?, false)
       |> assign(:editing_bom_id, nil)
@@ -137,7 +136,7 @@ defmodule ForgeWeb.ProjectLive.Show do
       |> assign(:note_total_pages, total_pages)
       |> assign(:notes_empty?, entries == [])
       |> assign(:budget_editing?, false)
-      |> assign(:budget_form, build_budget_form(project))
+      |> assign(:budget_form, Budget.budget_form(project))
       |> stream(:journal_entries, entries)
       |> init_task_assigns(project)
 
@@ -182,17 +181,17 @@ defmodule ForgeWeb.ProjectLive.Show do
     updated = Projects.get_project!(project.id)
     socket = assign(socket, :project, updated)
 
-    cond do
-      current.tasks_enabled == updated.tasks_enabled ->
+    case {current.tasks_enabled, updated.tasks_enabled} do
+      {same, same} ->
         {:noreply, socket}
 
-      updated.tasks_enabled ->
+      {_, true} ->
         if connected?(socket),
           do: Phoenix.PubSub.subscribe(Forge.PubSub, "tasks:project:#{updated.id}")
 
         {:noreply, TaskHandlers.reload_tasks(socket)}
 
-      true ->
+      {_, false} ->
         if connected?(socket),
           do: Phoenix.PubSub.unsubscribe(Forge.PubSub, "tasks:project:#{updated.id}")
 
@@ -208,6 +207,7 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   # ── Task events ───────────────────────────────────────────────────────────
 
+  @impl true
   def handle_event("task_create", params, socket),
     do: with_tasks_enabled(socket, &TaskHandlers.task_create(params, &1))
 
@@ -285,7 +285,7 @@ defmodule ForgeWeb.ProjectLive.Show do
   def handle_event("note_edit_save", params, socket),
     do: NoteHandlers.note_edit_save(params, socket)
 
-  def handle_event("note_page", params, socket),
+  def handle_event("goto-page", params, socket),
     do: NoteHandlers.note_page(params, socket)
 
   # ── BOM events ────────────────────────────────────────────────────────────
@@ -339,14 +339,13 @@ defmodule ForgeWeb.ProjectLive.Show do
          socket
          |> reload_project()
          |> assign(:budget_editing?, false)
-         |> assign(:budget_form, build_budget_form(project))}
+         |> assign(:budget_form, Budget.budget_form(project))}
 
       {:error, form} ->
         {:noreply, assign(socket, :budget_form, to_form(form))}
     end
   end
 
-  @impl true
   def handle_event("delete", _params, socket) do
     {:ok, _} = Projects.delete_project(socket.assigns.project)
 
@@ -357,15 +356,6 @@ defmodule ForgeWeb.ProjectLive.Show do
   end
 
   # ── Private helpers ───────────────────────────────────────────────────────
-
-  @spec build_budget_form(Forge.Projects.Project.t()) :: Phoenix.HTML.Form.t()
-  defp build_budget_form(project) do
-    AshPhoenix.Form.for_update(project, :update,
-      domain: Forge.Projects,
-      as: "project"
-    )
-    |> to_form()
-  end
 
   @spec subscribe_pubsub(Phoenix.LiveView.Socket.t(), Forge.Projects.Project.t()) :: :ok
   defp subscribe_pubsub(socket, project) do
@@ -387,11 +377,19 @@ defmodule ForgeWeb.ProjectLive.Show do
 
   @spec init_task_assigns(Phoenix.LiveView.Socket.t(), Forge.Projects.Project.t()) ::
           Phoenix.LiveView.Socket.t()
-  defp init_task_assigns(socket, %{tasks_enabled: true} = project) do
-    tasks = Projects.list_tasks_with_subtasks(project.id)
+  defp init_task_assigns(socket, project) do
+    {tasks, task_counts} =
+      case project.tasks_enabled do
+        true ->
+          tasks = Projects.list_tasks_with_subtasks(project.id)
+          {tasks, Projects.task_stats(project.id)}
+
+        false ->
+          {[], %{}}
+      end
 
     socket
-    |> assign(:task_counts, Projects.task_stats(project.id))
+    |> assign(:task_counts, task_counts)
     |> assign(:task_form, Tasks.task_form())
     |> assign(:task_form_open?, false)
     |> assign(:tasks_empty?, tasks == [])
@@ -401,20 +399,6 @@ defmodule ForgeWeb.ProjectLive.Show do
     |> assign(:subtask_form_task_id, nil)
     |> assign(:collapsed_subtasks, MapSet.new())
     |> stream(:tasks, tasks)
-  end
-
-  defp init_task_assigns(socket, _project) do
-    socket
-    |> assign(:task_counts, %{})
-    |> assign(:task_form, Tasks.task_form())
-    |> assign(:task_form_open?, false)
-    |> assign(:tasks_empty?, true)
-    |> assign(:expanded_task_id, nil)
-    |> assign(:editing_task_id, nil)
-    |> assign(:task_edit_form, Tasks.task_form())
-    |> assign(:subtask_form_task_id, nil)
-    |> assign(:collapsed_subtasks, MapSet.new())
-    |> stream(:tasks, [])
   end
 
   @spec apply_section_open(Phoenix.LiveView.Socket.t(), atom(), boolean()) ::
@@ -460,30 +444,25 @@ defmodule ForgeWeb.ProjectLive.Show do
      |> assign(:task_counts, Projects.task_stats(socket.assigns.project.id))}
   end
 
-  defp apply_task_notification(socket, action, task) do
+  defp apply_task_notification(socket, %{type: _type, touched_attributes: touched}, task) do
     ordering_affected? =
-      MapSet.size(
-        MapSet.intersection(
-          Map.get(action, :touched_attributes, MapSet.new()),
-          MapSet.new([:pin_status, :sort_order, :parent_task_id])
-        )
-      ) > 0
+      not MapSet.disjoint?(touched, MapSet.new([:pin_status, :sort_order, :parent_task_id]))
 
     case ordering_affected? do
       true ->
         {:noreply, TaskHandlers.reload_tasks(socket)}
 
       false ->
-        refreshed =
-          Forge.Projects.Task
-          |> Ash.Query.load(:subtasks)
-          |> Ash.Query.filter(id: task.id)
-          |> Ash.read_one!()
+        refreshed = Projects.get_task_with_subtasks!(task.id)
 
         {:noreply,
          socket
          |> stream_insert(:tasks, refreshed)
          |> assign(:task_counts, Projects.task_stats(socket.assigns.project.id))}
     end
+  end
+
+  defp apply_task_notification(socket, _action, _task) do
+    {:noreply, TaskHandlers.reload_tasks(socket)}
   end
 end

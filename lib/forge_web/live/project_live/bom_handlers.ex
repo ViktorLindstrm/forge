@@ -105,6 +105,6 @@ defmodule ForgeWeb.ProjectLive.BomHandlers do
 
     socket
     |> assign(:project, project)
-    |> assign(:bom_budget, Projects.bom_budget(project_id))
+    |> assign(:bom_budget, Projects.bom_budget(project))
   end
 end

@@ -1062,6 +1062,9 @@
   .-mr-1 {
     margin-right: calc(var(--spacing) * -1);
   }
+  .mr-1 {
+    margin-right: calc(var(--spacing) * 1);
+  }
   .mr-10 {
     margin-right: calc(var(--spacing) * 10);
   }
@@ -4618,6 +4621,22 @@
           color: var(--color-white);
         }
       }
+    }
+  }
+  .\[\&_\.pc-pagination\\_\\_button\]\:px-2 {
+    & .pc-pagination__button {
+      padding-inline: calc(var(--spacing) * 2);
+    }
+  }
+  .\[\&_\.pc-pagination\\_\\_button\]\:py-1 {
+    & .pc-pagination__button {
+      padding-block: calc(var(--spacing) * 1);
+    }
+  }
+  .\[\&_\.pc-pagination\\_\\_button\]\:text-xs {
+    & .pc-pagination__button {
+      font-size: var(--text-xs);
+      line-height: var(--tw-leading, var(--text-xs--line-height));
     }
   }
 }
