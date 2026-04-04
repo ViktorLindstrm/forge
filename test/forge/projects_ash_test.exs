@@ -499,8 +499,8 @@ defmodule Forge.ProjectsAshTest do
             Projects.create_journal_entry(%{"body" => body, "project_id" => project.id})
         end)
 
-        page1 = Projects.list_journal_entries_page(project.id, 1, 2)
-        page2 = Projects.list_journal_entries_page(project.id, 2, 2)
+        %{entries: page1} = Projects.list_journal_entries_page(project.id, 1, 2)
+        %{entries: page2} = Projects.list_journal_entries_page(project.id, 2, 2)
 
         assert length(page1) == 2
         assert length(page2) == 2

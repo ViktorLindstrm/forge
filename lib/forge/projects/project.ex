@@ -199,6 +199,15 @@ defmodule Forge.Projects.Project do
     end
 
     count :journal_entry_count, :journal_entries
+
+    sum :bom_total, :bom_items, :total_price do
+      default Decimal.new(0)
+    end
+
+    sum :bom_spent, :bom_items, :total_price do
+      filter expr(status in [:ordered, :received])
+      default Decimal.new(0)
+    end
   end
 
   @type status :: :idea | :active | :paused | :done
@@ -221,6 +230,8 @@ defmodule Forge.Projects.Project do
           project_group_id: pos_integer() | nil,
           current_task: pinned_task(),
           upcoming_task: pinned_task(),
+          bom_total: Decimal.t(),
+          bom_spent: Decimal.t(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }

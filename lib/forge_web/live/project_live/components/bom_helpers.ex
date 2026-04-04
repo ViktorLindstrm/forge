@@ -28,9 +28,8 @@ defmodule ForgeWeb.ProjectLive.Components.BomHelpers do
     Decimal.mult(price, Decimal.new(item.quantity))
   end
 
-  @spec budget_label(Forge.Projects.bom_budget(), String.t()) :: String.t()
-  def budget_label(%{items: items, spent: spent}, currency \\ "SEK") do
-    count = length(items)
-    "#{count} #{if count == 1, do: "item", else: "items"} · #{money(spent, currency)} total"
+  @spec budget_label(non_neg_integer(), Decimal.t(), String.t()) :: String.t()
+  def budget_label(count, total, currency \\ "SEK") do
+    "#{count} #{if count == 1, do: "item", else: "items"} · #{money(total, currency)} total"
   end
 end

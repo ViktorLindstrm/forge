@@ -245,7 +245,7 @@ defmodule ForgeWeb.ProjectLive.ComponentsTest do
   describe "bom_form/0" do
     property "returns a Phoenix.HTML.Form backed by AshPhoenix.Form with name 'bom'" do
       check all(_ <- constant(:ok)) do
-        form = Components.bom_form()
+        form = ForgeWeb.ProjectLive.Bom.bom_form()
         assert %Phoenix.HTML.Form{} = form
         assert %AshPhoenix.Form{} = form.source
         assert form.name == "bom"

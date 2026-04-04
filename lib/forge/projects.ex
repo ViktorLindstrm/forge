@@ -118,7 +118,18 @@ defmodule Forge.Projects do
   end
 
   @spec get_project!(project_id()) :: Project.t()
-  def get_project!(id), do: Ash.get!(Project, id)
+  def get_project!(id) do
+    Ash.get!(Project, id,
+      load: [
+        :current_task,
+        :upcoming_task,
+        :bom_total,
+        :bom_spent,
+        :bom_item_count,
+        :received_bom_item_count
+      ]
+    )
+  end
 
   @spec create_project(map()) :: {:ok, Project.t()} | {:error, Ash.Error.t()}
   def create_project(attrs \\ %{}) do
@@ -229,19 +240,27 @@ defmodule Forge.Projects do
     |> Ash.update()
   end
 
+  @spec cycle_task_pin(Task.t()) :: {:ok, Task.t()} | {:error, Ash.Error.t()}
+  def cycle_task_pin(%Task{pin_status: :current} = task), do: pin_task(task.id, :upcoming)
+  def cycle_task_pin(%Task{pin_status: :upcoming} = task), do: unpin_task(task.id)
+  def cycle_task_pin(%Task{} = task), do: pin_task(task.id, :current)
+
   @spec task_stats(project_id()) :: task_stats()
   def task_stats(project_id) do
-    query =
-      Task
-      |> Ash.Query.filter(project_id == ^project_id)
+    base_query = Task |> Ash.Query.filter(project_id == ^project_id)
+
+    aggregates =
+      Enum.map(Task.statuses(), fn status ->
+        Ash.Query.Aggregate.new!(Task, :"count_#{status}", :count,
+          query: Ash.Query.filter(base_query, status == ^status),
+          default: 0
+        )
+      end)
+
+    {:ok, result} = Ash.aggregate(Task, aggregates)
 
     Enum.into(Task.statuses(), %{}, fn status ->
-      count =
-        query
-        |> Ash.Query.filter(status == ^status)
-        |> Ash.count!()
-
-      {status, count}
+      {status, Map.get(result, :"count_#{status}", 0)}
     end)
   end
 
@@ -251,6 +270,13 @@ defmodule Forge.Projects do
   @spec reorder_subtasks(Ecto.UUID.t(), [Ecto.UUID.t() | String.t()]) :: :ok
   def reorder_subtasks(_parent_task_id, ordered_ids), do: bulk_apply_sort_orders(ordered_ids)
 
+  # Intentional Ash bypass: Ash does not support bulk CASE-based UPDATE with
+  # per-row values in a single query. Updating N tasks one-by-one via Ash would
+  # fire N individual UPDATE statements plus N PubSub notifications, causing
+  # visible flickering on drag-reorder. The raw SQL CASE expression here
+  # achieves the reorder atomically in one round-trip while suppressing
+  # unnecessary notifications. Any change to the tasks table schema must be
+  # reflected here manually.
   @spec bulk_apply_sort_orders([Ecto.UUID.t() | String.t()]) :: :ok
   defp bulk_apply_sort_orders([]), do: :ok
 
@@ -354,15 +380,20 @@ defmodule Forge.Projects do
     |> Ash.read!()
   end
 
+  @type journal_entries_page :: %{
+          entries: [JournalEntry.t()],
+          count: non_neg_integer()
+        }
+
   @spec list_journal_entries_page(project_id(), pos_integer(), pos_integer()) ::
-          [JournalEntry.t()]
+          journal_entries_page()
   def list_journal_entries_page(project_id, page, per_page) do
     result =
       JournalEntry
       |> Ash.Query.for_read(:by_project, %{project_id: project_id})
-      |> Ash.read!(page: [offset: (page - 1) * per_page, limit: per_page])
+      |> Ash.read!(page: [offset: (page - 1) * per_page, limit: per_page, count: true])
 
-    result.results
+    %{entries: result.results, count: result.count}
   end
 
   @spec count_journal_entries(project_id()) :: non_neg_integer()

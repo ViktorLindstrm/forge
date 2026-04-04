@@ -1,4 +1,12 @@
 defmodule ForgeWeb.ProjectLive.Tasks do
+  @moduledoc """
+  Form-builder helpers for task LiveView interactions.
+
+  Provides `AshPhoenix.Form`-backed form structs for creating and editing
+  `Forge.Projects.Task` records.  All task rendering lives in
+  `ForgeWeb.ProjectLive.Components`.
+  """
+
   use Phoenix.Component
 
   alias Forge.Projects

@@ -1,4 +1,12 @@
 defmodule ForgeWeb.ProjectLive.Bom do
+  @moduledoc """
+  Form-builder helpers for BOM item LiveView interactions.
+
+  Provides `AshPhoenix.Form`-backed form structs for creating and editing
+  `Forge.Projects.BomItem` records.  All BOM rendering lives in
+  `ForgeWeb.ProjectLive.Components`.
+  """
+
   alias Forge.Projects
 
   @spec bom_form() :: Phoenix.HTML.Form.t()
